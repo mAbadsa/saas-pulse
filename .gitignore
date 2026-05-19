@@ -1,2 +1,33 @@
+# --- التبعات ---
+node_modules/
+
+# --- ملفات البناء (Build) ---
+.next/
+dist/
+build/
+out/
+.turbo/
+
+# --- ملفات البيئة (الأمان أولاً) ---
 .env
-node_modudle
+.env.*
+!.env.example # لا تتجاهل ملف المثال
+
+# --- قاعدة البيانات ---
+# بما أن Prisma ستكون في package منفصلة
+packages/database/generated/
+*.db
+*.db-journal
+
+# --- سجلات الأخطاء ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- ملفات النظام وأدوات الـ IDE ---
+.DS_Store
+.vscode/
+!.vscode/extensions.json # لكي يرى الفريق الإضافات المقترحة
+.idea/
+.cursor/
