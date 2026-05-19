@@ -1,0 +1,18 @@
+{
+  "name": "saas-pulse",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev -w @saas-pulse/api",
+    "dev:web": "npm run dev -w @saas-pulse/web",
+    "build": "npm run build -w @saas-pulse/shared && npm run build -w @saas-pulse/api && npm run build -w @saas-pulse/web",
+    "build:shared": "npm run build -w @saas-pulse/shared",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "prisma:generate": "npm run prisma:generate -w @saas-pulse/api",
+    "prisma:migrate": "npm run prisma:migrate -w @saas-pulse/api"
+  }
+}
