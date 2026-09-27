@@ -6,7 +6,7 @@
 
 **Current state:** early stage.
 - The API has `/`, `/health`, JWT auth (`/auth/*`) and monitors CRUD (`/monitors`), and a ping service that checks active monitors automatically. The web dashboard is next.
-- The web app shows the health response and is being restyled with Tailwind and shadcn.
+- The web app has sign-in/register and a monitors page (list with live status, add/edit, pause/resume, delete).
 
 ---
 
@@ -66,6 +66,11 @@ saas-pulse/
 - `@/*` → `src/*`.
 - shadcn components live in `src/components/ui`, helpers in `src/lib`, and config in `components.json`.
 - Use the `styling` skill when adding or changing UI.
+- Routes (`react-router`): `/login`, `/register` (public-only) and `/` (monitors, needs sign-in). They're set up in `App.tsx`, with `BrowserRouter` + `AuthProvider` in `main.tsx`.
+- `lib/api.ts`: `api<T>(path, { method, body })` adds the Bearer token and throws `ApiError { status, messages }`. A 401 on a non-`/auth/*` call signs out with the "session expired" message.
+- `auth/`: `AuthProvider` + `useAuth()` (in `auth-context.ts`, a separate file for react-refresh). The session lives in `localStorage` (`lib/session.ts`); **moving it to httpOnly cookies is a follow-up before any public deployment.**
+- `monitors/`: `MonitorsPage` polls `GET /monitors` every 15 s while the tab is visible. The row layout is responsive (cards on mobile), and `StatusBadge` always shows an icon and text. Only set state in promise callbacks when code runs from an effect (the `react-hooks/set-state-in-effect` lint rule).
+- There's no web test runner yet. The gates are `npm run lint -w @saas-pulse/web` and `npm run build`.
 
 ### `packages/shared` (`@saas-pulse/shared`)
 

@@ -2,7 +2,7 @@
 
 A real-time infrastructure monitoring platform. SaaS Pulse watches your servers, APIs and websites, and tracks their uptime, latency and response status.
 
-> **Status:** early development. Auth, monitor management and the ping service are in place (monitors are checked automatically); the dashboard is next — see the [roadmap](docs/ROADMAP.md).
+> **Status:** early development. The API (auth, monitors, automatic checks) and a web app to sign in and manage monitors with live status are in place; charts, uptime stats and alerts are next — see the [roadmap](docs/ROADMAP.md).
 
 ## Tech Stack
 
@@ -44,7 +44,7 @@ npm run dev:api   # http://localhost:3000
 npm run dev:web   # http://localhost:5173
 ```
 
-Open http://localhost:5173. The page should show the API health status, with both `database` and `redis` reported as `ok`.
+Open http://localhost:5173, create an account and add a monitor. It shows **Pending**, then **Up** or **Down** after the first check (about 15 s). To check the API itself, `curl localhost:3000/health`.
 
 ## Scripts
 
