@@ -12,9 +12,6 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": "./",
-    "paths": {
-      "@saas-pulse/shared": ["../../packages/shared/src/index.d.ts"]
-    },
     "incremental": true,
     "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo",
     "skipLibCheck": true,

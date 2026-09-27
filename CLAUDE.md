@@ -18,7 +18,7 @@ npm workspaces monorepo:
 - `apps/web` (`@saas-pulse/web`): React 19 + Vite, on port 5173. Reads the API URL from `VITE_API_URL` (default `http://localhost:3000`).
 - `packages/shared` (`@saas-pulse/shared`): TypeScript types shared by the API and the web app, such as `HealthCheckResponse` and `ApiErrorResponse`. Put request/response contracts here.
   - Web resolves it through a Vite alias to `src/index.ts`.
-  - API resolves it through tsconfig `paths` to `src/index.d.ts`, so run `npm run build:shared` after changing the types.
+  - API resolves it as a normal package (`packages/shared/dist/`). `dev:api` builds shared first; after changing the types while the API is running, run `npm run build:shared`.
 - `infrastructure/` (docker, terraform): empty placeholders.
 
 ## Commands (run from repo root)
