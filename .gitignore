@@ -11,12 +11,12 @@ out/
 # --- ملفات البيئة (الأمان أولاً) ---
 .env
 .env.*
-!.env.example # لا تتجاهل ملف المثال
+# لا تتجاهل ملف المثال
+!.env.example
 
 # --- قاعدة البيانات ---
 # بما أن Prisma ستكون في package منفصلة
 packages/database/generated/
-apps/api/src/generated/
 *.db
 *.db-journal
 
@@ -29,6 +29,10 @@ pnpm-debug.log*
 # --- ملفات النظام وأدوات الـ IDE ---
 .DS_Store
 .vscode/
-!.vscode/extensions.json # لكي يرى الفريق الإضافات المقترحة
+# لكي يرى الفريق الإضافات المقترحة
+!.vscode/extensions.json
 .idea/
 .cursor/
+
+# --- إعدادات Claude الشخصية (محلية لكل جهاز) ---
+.claude/settings.local.json

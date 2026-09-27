@@ -19,4 +19,13 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // shadcn/ui generates components alongside their `cva` variant maps in
+    // the same file — that's their upstream convention, not something this
+    // repo controls, so this rule doesn't apply to generated ui primitives.
+    files: ['src/components/ui/**/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

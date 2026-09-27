@@ -12,7 +12,7 @@ import { REDIS_CLIENT } from './redis.constants';
       useFactory: (config: ConfigService) =>
         new Redis({
           host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
+          port: config.get<number>('REDIS_PORT', 6389),
         }),
     },
   ],

@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:api": "npm run start:dev -w @saas-pulse/api",
+    "dev:api": "npm run build:shared && npm run start:dev -w @saas-pulse/api",
     "dev:web": "npm run dev -w @saas-pulse/web",
     "build": "npm run build -w @saas-pulse/shared && npm run build -w @saas-pulse/api && npm run build -w @saas-pulse/web",
     "build:shared": "npm run build -w @saas-pulse/shared",

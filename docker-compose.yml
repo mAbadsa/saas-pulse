@@ -5,10 +5,10 @@ services:
     image: postgres:15-alpine
     container_name: pulse_db
     ports:
-      - "5432:5432"
+      - "5442:5432"
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: muhammad
+      POSTGRES_PASSWORD: 123456
       POSTGRES_DB: saas_pulse
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -17,7 +17,7 @@ services:
     image: redis:alpine
     container_name: pulse_redis
     ports:
-      - "6379:6379"
+      - "6389:6379"
 
 volumes:
   postgres_data:
