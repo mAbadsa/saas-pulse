@@ -29,6 +29,7 @@ npm install
 
 # 2. Create the API env file.
 #    In DATABASE_URL, replace user:password with the credentials from docker-compose.yml.
+#    Set JWT_SECRET to a random value: openssl rand -hex 32
 cp .env.example apps/api/.env
 
 # 3. Start PostgreSQL (port 5442) and Redis (port 6389)
@@ -71,6 +72,8 @@ Per-app scripts:
 | `REDIS_HOST` / `REDIS_PORT` | API | `localhost` / `6389` |
 | `PORT` | API | `3000` |
 | `CORS_ORIGIN` | API | `http://localhost:5173` |
+| `JWT_SECRET` | API | (required; generate with `openssl rand -hex 32`) |
+| `JWT_EXPIRES_IN` | API | `1d` |
 | `VITE_API_URL` | Web | `http://localhost:3000` |
 
 ## API
@@ -79,6 +82,11 @@ Per-app scripts:
 |--------|------|-------------|
 | GET | `/` | API name |
 | GET | `/health` | Database and Redis status: `{ status, timestamp, services }` |
+| POST | `/auth/register` | Create an account: `{ email, password, name? }` → `{ accessToken, user }` |
+| POST | `/auth/login` | Sign in: `{ email, password }` → `{ accessToken, user }` |
+| GET | `/auth/me` | The signed-in user's profile (requires a token) |
+
+Every endpoint except `/`, `/health`, `/auth/register` and `/auth/login` requires `Authorization: Bearer <accessToken>`.
 
 ## Project Structure
 

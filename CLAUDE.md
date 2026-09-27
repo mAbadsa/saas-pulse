@@ -5,7 +5,7 @@
 **SaaS Pulse** is a full-stack, real-time infrastructure monitoring platform (SaaS). It monitors servers, APIs and websites for uptime, latency and response status. It is built as a monorepo with a modern DevOps setup.
 
 **Current state:** early stage.
-- The API has only `/` and `/health`.
+- The API has `/`, `/health` and JWT auth (`/auth/register`, `/auth/login`, `/auth/me`).
 - The web app shows the health response and is being restyled with Tailwind and shadcn.
 
 ---
@@ -53,6 +53,8 @@ saas-pulse/
 - `src/prisma/`: global `PrismaService`, which extends `PrismaClient`.
 - `src/redis/`: global ioredis client, injected with `@Inject(REDIS_CLIENT)`.
 - `src/app.service.ts`: `/health` pings the DB (`SELECT 1`) and Redis.
+- `src/auth/`: register/login/me, the global `AuthGuard`, `@Public()` and `@CurrentUser()`.
+- `test/`: e2e tests (`*.e2e-spec.ts`), run against the local Docker DB.
 - `prisma/schema.prisma` + `prisma/migrations/`
 
 ### `apps/web` (`@saas-pulse/web`)
@@ -100,6 +102,8 @@ Copy `.env.example` to `.env`. The API reads `apps/api/.env` or the root `.env`.
 DATABASE_URL=postgresql://muhammad:123456@localhost:5442/saas_pulse
 REDIS_HOST=localhost
 REDIS_PORT=6389
+JWT_SECRET=<openssl rand -hex 32>   # required; the API refuses to start without it
+JWT_EXPIRES_IN=1d
 ```
 
 These credentials come from `docker-compose.yml` and are for local development only.
@@ -158,3 +162,13 @@ The full plan is in `docs/ROADMAP.md`. Build in this order. Nothing below is imp
 - NestJS: one module per feature, with a controller and a service. Use global modules for infrastructure (Prisma, Redis).
 - API code uses single quotes and Prettier. Import shared types with `import type`.
 - New features follow the Spec Kit flow (`speckit-specify` → `plan` → `tasks` → `implement`), with the files under `specs/NNN-feature-name/`.
+
+### Auth & data isolation
+
+- Every route requires a valid Bearer token unless it is marked `@Public()`. The global `AuthGuard` enforces this, and an e2e test fails if a non-allowlisted route is reachable without a token.
+- Get the caller with `@CurrentUser() user: UserProfile`. Never parse the token yourself.
+- Every query on owned data filters by the caller's id:
+  - `where: { id, userId: user.id }` for a Monitor
+  - `where: { monitor: { userId: user.id } }` for a Check
+- A record owned by someone else returns **404**, the same as a missing one, never 403.
+- `userId` always comes from `@CurrentUser()`, never from the request body. The global `ValidationPipe` rejects unknown body fields.
