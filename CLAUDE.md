@@ -5,7 +5,7 @@
 **SaaS Pulse** is a full-stack, real-time infrastructure monitoring platform (SaaS). It monitors servers, APIs and websites for uptime, latency and response status. It is built as a monorepo with a modern DevOps setup.
 
 **Current state:** early stage.
-- The API has `/`, `/health` and JWT auth (`/auth/register`, `/auth/login`, `/auth/me`).
+- The API has `/`, `/health`, JWT auth (`/auth/*`) and monitors CRUD (`/monitors`). Nothing pings URLs yet (ping service is next).
 - The web app shows the health response and is being restyled with Tailwind and shadcn.
 
 ---
@@ -54,6 +54,7 @@ saas-pulse/
 - `src/redis/`: global ioredis client, injected with `@Inject(REDIS_CLIENT)`.
 - `src/app.service.ts`: `/health` pings the DB (`SELECT 1`) and Redis.
 - `src/auth/`: register/login/me, the global `AuthGuard`, `@Public()` and `@CurrentUser()`.
+- `src/monitors/`: monitors CRUD. Every query is scoped by `userId`, pause/resume uses `PATCH { isActive }`, and changing the URL resets `status` to `PENDING`.
 - `test/`: e2e tests (`*.e2e-spec.ts`), run against the local Docker DB.
 - `prisma/schema.prisma` + `prisma/migrations/`
 

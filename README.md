@@ -2,7 +2,7 @@
 
 A real-time infrastructure monitoring platform. SaaS Pulse watches your servers, APIs and websites, and tracks their uptime, latency and response status.
 
-> **Status:** early development. The monorepo, database schema and health endpoint are in place. Monitoring features are next; see the [roadmap](docs/ROADMAP.md).
+> **Status:** early development. Auth and monitor management are in place; the ping service and dashboard are next — see the [roadmap](docs/ROADMAP.md).
 
 ## Tech Stack
 
@@ -85,6 +85,11 @@ Per-app scripts:
 | POST | `/auth/register` | Create an account: `{ email, password, name? }` → `{ accessToken, user }` |
 | POST | `/auth/login` | Sign in: `{ email, password }` → `{ accessToken, user }` |
 | GET | `/auth/me` | The signed-in user's profile (requires a token) |
+| POST | `/monitors` | Create a monitor: `{ name, url, intervalSeconds? }` (interval 30–86400 s, default 60) |
+| GET | `/monitors` | List your monitors, newest first |
+| GET | `/monitors/:id` | Get one of your monitors |
+| PATCH | `/monitors/:id` | Update `name`, `url`, `intervalSeconds`, or `isActive` (pause/resume) |
+| DELETE | `/monitors/:id` | Delete a monitor and its check history |
 
 Every endpoint except `/`, `/health`, `/auth/register` and `/auth/login` requires `Authorization: Bearer <accessToken>`.
 

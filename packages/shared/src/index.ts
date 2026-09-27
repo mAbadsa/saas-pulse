@@ -36,3 +36,30 @@ export interface AuthResponse {
   accessToken: string;
   user: UserProfile;
 }
+
+export type MonitorStatus = 'PENDING' | 'UP' | 'DOWN';
+
+export interface MonitorResponse {
+  id: string;
+  name: string;
+  url: string;
+  intervalSeconds: number;
+  isActive: boolean;
+  status: MonitorStatus;
+  lastCheckedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMonitorRequest {
+  name: string;
+  url: string;
+  intervalSeconds?: number;
+}
+
+export interface UpdateMonitorRequest {
+  name?: string;
+  url?: string;
+  intervalSeconds?: number;
+  isActive?: boolean;
+}
