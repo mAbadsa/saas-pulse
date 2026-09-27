@@ -31,3 +31,6 @@ pnpm-debug.log*
 !.vscode/extensions.json # لكي يرى الفريق الإضافات المقترحة
 .idea/
 .cursor/
+
+# --- إعدادات Claude الشخصية (محلية لكل جهاز) ---
+.claude/settings.local.json
