@@ -2,7 +2,7 @@
 
 A real-time infrastructure monitoring platform. SaaS Pulse watches your servers, APIs and websites, and tracks their uptime, latency and response status.
 
-> **Status:** early development. Auth and monitor management are in place; the ping service and dashboard are next — see the [roadmap](docs/ROADMAP.md).
+> **Status:** early development. Auth, monitor management and the ping service are in place (monitors are checked automatically); the dashboard is next — see the [roadmap](docs/ROADMAP.md).
 
 ## Tech Stack
 
@@ -74,6 +74,9 @@ Per-app scripts:
 | `CORS_ORIGIN` | API | `http://localhost:5173` |
 | `JWT_SECRET` | API | (required; generate with `openssl rand -hex 32`) |
 | `JWT_EXPIRES_IN` | API | `1d` |
+| `PING_ENABLED` | API | `true` (set `false` to stop the background checker) |
+| `PING_ALLOW_PRIVATE` | API | `false`; **local dev only**: lets monitors reach `localhost`/private IPs |
+| `PING_TIMEOUT_MS` | API | `10000` |
 | `VITE_API_URL` | Web | `http://localhost:3000` |
 
 ## API

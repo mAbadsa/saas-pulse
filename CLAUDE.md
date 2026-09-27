@@ -5,7 +5,7 @@
 **SaaS Pulse** is a full-stack, real-time infrastructure monitoring platform (SaaS). It monitors servers, APIs and websites for uptime, latency and response status. It is built as a monorepo with a modern DevOps setup.
 
 **Current state:** early stage.
-- The API has `/`, `/health`, JWT auth (`/auth/*`) and monitors CRUD (`/monitors`). Nothing pings URLs yet (ping service is next).
+- The API has `/`, `/health`, JWT auth (`/auth/*`) and monitors CRUD (`/monitors`), and a ping service that checks active monitors automatically. The web dashboard is next.
 - The web app shows the health response and is being restyled with Tailwind and shadcn.
 
 ---
@@ -55,6 +55,7 @@ saas-pulse/
 - `src/app.service.ts`: `/health` pings the DB (`SELECT 1`) and Redis.
 - `src/auth/`: register/login/me, the global `AuthGuard`, `@Public()` and `@CurrentUser()`.
 - `src/monitors/`: monitors CRUD. Every query is scoped by `userId`, pause/resume uses `PATCH { isActive }`, and changing the URL resets `status` to `PENDING`.
+- `src/ping/`: background checker. A `setInterval` loop (every 10 s) finds due monitors with raw SQL, sends one GET each (no redirects, body discarded) and saves a `Check`. An SSRF guard blocks non-public IPs at connect time (`safeLookup` + `blocked-addresses.ts`). e2e tests set `PING_ENABLED=false` and call `runCycle()` directly; the e2e suites run serially because they share the DB.
 - `test/`: e2e tests (`*.e2e-spec.ts`), run against the local Docker DB.
 - `prisma/schema.prisma` + `prisma/migrations/`
 
@@ -105,6 +106,7 @@ REDIS_HOST=localhost
 REDIS_PORT=6389
 JWT_SECRET=<openssl rand -hex 32>   # required; the API refuses to start without it
 JWT_EXPIRES_IN=1d
+PING_ALLOW_PRIVATE=true   # local dev only: lets monitors reach localhost
 ```
 
 These credentials come from `docker-compose.yml` and are for local development only.
