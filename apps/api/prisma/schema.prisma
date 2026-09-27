@@ -7,34 +7,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
-// model User {
-// }
-
-/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
-// model Server {
-// }
-
-/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
-// model Log {
-// }
-
-/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
-// model prisma_migrations {
-// @@map("_prisma_migrations")
-// }
-
-enum ServerStatus {
-  ONLINE
-  OFFLINE
-  DEGRADED
-  UNKNOWN
+enum MonitorStatus {
+  PENDING
+  UP
+  DOWN
 }
 
-enum LogLevel {
-  DEBUG
-  INFO
-  WARN
-  ERROR
-  FATAL
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  password  String
+  monitors  Monitor[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Monitor {
+  id              String        @id @default(cuid())
+  name            String
+  url             String
+  intervalSeconds Int           @default(60)
+  isActive        Boolean       @default(true)
+  status          MonitorStatus @default(PENDING)
+  lastCheckedAt   DateTime?
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checks          Check[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+model Check {
+  id         String   @id @default(cuid())
+  monitorId  String
+  monitor    Monitor  @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  isUp       Boolean
+  statusCode Int? // null when the request failed or timed out
+  latencyMs  Int?
+  error      String? // timeout / DNS / connection error message
+  checkedAt  DateTime @default(now())
+
+  @@index([monitorId, checkedAt])
 }
