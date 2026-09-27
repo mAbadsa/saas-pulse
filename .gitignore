@@ -16,7 +16,6 @@ out/
 # --- قاعدة البيانات ---
 # بما أن Prisma ستكون في package منفصلة
 packages/database/generated/
-apps/api/src/generated/
 *.db
 *.db-journal
 
