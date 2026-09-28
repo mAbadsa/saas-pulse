@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# A newer push to the same branch/PR cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: saas_pulse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Throwaway credentials for the CI-only service containers above.
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/saas_pulse?schema=public
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate a per-run JWT secret (never committed)
+        run: echo "JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
+      - run: npm run build:shared
+      - run: npm run prisma:generate
+      - name: Apply committed migrations
+        run: npx -w @saas-pulse/api prisma migrate deploy
+
+      - run: npm run lint -w @saas-pulse/api
+      - run: npm run lint -w @saas-pulse/web
+      - name: Fail on formatting drift (API lint runs eslint --fix)
+        run: git diff --exit-code
+
+      - run: npm run test -w @saas-pulse/api
+      - run: npm run test:e2e -w @saas-pulse/api
+      - run: npm run build

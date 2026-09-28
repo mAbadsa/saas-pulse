@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { MonitorsModule } from './monitors/monitors.module';
+import { PingModule } from './ping/ping.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 
@@ -18,6 +19,7 @@ import { RedisModule } from './redis/redis.module';
     RedisModule,
     AuthModule,
     MonitorsModule,
+    PingModule,
   ],
   controllers: [AppController],
   providers: [

@@ -5,8 +5,8 @@
 **SaaS Pulse** is a full-stack, real-time infrastructure monitoring platform (SaaS). It monitors servers, APIs and websites for uptime, latency and response status. It is built as a monorepo with a modern DevOps setup.
 
 **Current state:** early stage.
-- The API has `/`, `/health`, JWT auth (`/auth/*`) and monitors CRUD (`/monitors`). Nothing pings URLs yet (ping service is next).
-- The web app shows the health response and is being restyled with Tailwind and shadcn.
+- The API has `/`, `/health`, JWT auth (`/auth/*`) and monitors CRUD (`/monitors`), and a ping service that checks active monitors automatically. The web dashboard is next.
+- The web app has sign-in/register and a monitors page (list with live status, add/edit, pause/resume, delete).
 
 ---
 
@@ -16,13 +16,13 @@ Items marked *(planned)* are part of the target stack but are not installed yet.
 
 - **Architecture:** monorepo using npm workspaces (`package-lock.json`, so use npm, not pnpm)
 - **Frontend (`apps/web`):** React 19, Vite, Tailwind CSS v4, shadcn/ui (Base UI, lucide-react), Recharts *(planned)*
-- **Backend (`apps/api`):** NestJS 11, TypeScript, Prisma 6 ORM, ioredis, `@nestjs/schedule` for cron jobs *(planned)*, Socket.io *(planned)*
+- **Backend (`apps/api`):** NestJS 11, TypeScript, Prisma 6 ORM, ioredis, Socket.io *(planned)*. The ping loop is a plain `setInterval`, not `@nestjs/schedule`.
 - **Database & cache:** PostgreSQL 15, Redis
 - **Shared (`packages/shared`):** shared TypeScript types, interfaces and validation schemas
 - **DevOps & infra:**
   - Docker & Docker Compose (local Postgres + Redis)
   - Nginx *(planned)*
-  - GitHub Actions CI/CD *(planned: `.github/workflows/` is empty)*
+  - GitHub Actions CI: `.github/workflows/ci.yml` runs lint, the formatting-drift check, unit and e2e tests (Postgres + Redis services) and the build on every push and PR. Deploy is *(planned)*.
 
 ---
 
@@ -39,7 +39,7 @@ saas-pulse/
 │   ├── docker/             # Custom Dockerfiles & Nginx configs (empty)
 │   └── terrfaform/         # Infrastructure as Code, optional (empty; folder name is misspelled)
 ├── .github/
-│   └── workflows/          # CI/CD pipelines (empty)
+│   └── workflows/ci.yml    # CI: lint, tests, e2e, build
 ├── specs/                  # Spec Kit feature specs (spec/plan/tasks per feature)
 ├── .specify/               # Spec Kit config, templates & scripts
 ├── docker-compose.yml      # Local dev services (PostgreSQL & Redis)
@@ -55,6 +55,7 @@ saas-pulse/
 - `src/app.service.ts`: `/health` pings the DB (`SELECT 1`) and Redis.
 - `src/auth/`: register/login/me, the global `AuthGuard`, `@Public()` and `@CurrentUser()`.
 - `src/monitors/`: monitors CRUD. Every query is scoped by `userId`, pause/resume uses `PATCH { isActive }`, and changing the URL resets `status` to `PENDING`.
+- `src/ping/`: background checker. A `setInterval` loop (every 10 s) finds due monitors with raw SQL, sends one GET each (no redirects, body discarded) and saves a `Check`. An SSRF guard blocks non-public IPs at connect time (`safeLookup` + `blocked-addresses.ts`). e2e tests set `PING_ENABLED=false` and call `runCycle()` directly; the e2e suites run serially because they share the DB.
 - `test/`: e2e tests (`*.e2e-spec.ts`), run against the local Docker DB.
 - `prisma/schema.prisma` + `prisma/migrations/`
 
@@ -65,6 +66,11 @@ saas-pulse/
 - `@/*` → `src/*`.
 - shadcn components live in `src/components/ui`, helpers in `src/lib`, and config in `components.json`.
 - Use the `styling` skill when adding or changing UI.
+- Routes (`react-router`): `/login`, `/register` (public-only) and `/` (monitors, needs sign-in). They're set up in `App.tsx`, with `BrowserRouter` + `AuthProvider` in `main.tsx`.
+- `lib/api.ts`: `api<T>(path, { method, body })` adds the Bearer token and throws `ApiError { status, messages }`. A 401 on a non-`/auth/*` call signs out with the "session expired" message.
+- `auth/`: `AuthProvider` + `useAuth()` (in `auth-context.ts`, a separate file for react-refresh). The session lives in `localStorage` (`lib/session.ts`); **moving it to httpOnly cookies is a follow-up before any public deployment.**
+- `monitors/`: `MonitorsPage` polls `GET /monitors` every 15 s while the tab is visible. The row layout is responsive (cards on mobile), and `StatusBadge` always shows an icon and text. Only set state in promise callbacks when code runs from an effect (the `react-hooks/set-state-in-effect` lint rule).
+- There's no web test runner yet. The gates are `npm run lint -w @saas-pulse/web` and `npm run build`.
 
 ### `packages/shared` (`@saas-pulse/shared`)
 
@@ -105,6 +111,7 @@ REDIS_HOST=localhost
 REDIS_PORT=6389
 JWT_SECRET=<openssl rand -hex 32>   # required; the API refuses to start without it
 JWT_EXPIRES_IN=1d
+PING_ALLOW_PRIVATE=true   # local dev only: lets monitors reach localhost
 ```
 
 These credentials come from `docker-compose.yml` and are for local development only.
@@ -130,31 +137,36 @@ These credentials come from `docker-compose.yml` and are for local development o
 
 ## 🗺️ Roadmap
 
-The full plan is in `docs/ROADMAP.md`. Build in this order. Nothing below is implemented yet.
+The full plan is in `docs/ROADMAP.md`. Each built feature has its spec in `specs/NNN-*/`.
 
-1. **Core (MVP)**
-   - **Monitors CRUD:** name, URL and ping interval. Monitors can be paused and resumed. Deleting a monitor also deletes its logs.
-   - **Ping service:** a `@nestjs/schedule` cron job (for example, every minute) that:
-     - sends an HTTP GET to each active monitor,
-     - records the status code and latency in ms,
-     - catches timeouts and network failures and logs the exact error.
-   - **Logging & caching:**
-     - Every check is saved to Postgres through Prisma.
-     - The current status of each monitor is cached in Redis, and dashboard reads come from Redis, not the DB.
-   - **Auth:** JWT for register, login and route protection. Multi-tenant: every query is scoped to the current user's own data.
-2. **Dashboard (web)**
-   - Status cards with badges: UP (green), DOWN (red), PENDING (gray).
-   - Average latency and uptime %.
-   - Live updates over Socket.io, with no page refresh.
-   - Recharts latency charts for the last 24 hours and 7 days.
-3. **Alerts:** Telegram bot, Slack/Discord webhooks, and email. Alerts fire when a monitor goes down or recovers; email also sends a weekly digest.
-4. **SaaS extras:**
-   - Public status pages (for example, `status.pulse.com/<company>`).
-   - Multi-region checks (for example, EU and US-East) to avoid false positives.
-   - AI analysis of recurring downtime patterns.
-5. **DevOps:**
-   - GitHub Actions: test, lint, Docker image build and deploy check on every push.
-   - Prometheus + Grafana for the app's own metrics.
+**Done:**
+- **Phase 1 (MVP):**
+  - JWT auth (`002`)
+  - monitors CRUD (`003`)
+  - ping service (`004`): a `setInterval` loop plus an SSRF guard; Postgres holds the check history and current status
+  - web sign-in and monitors UI (`005`)
+- **CI** (`006`), part of phase 5
+
+**Deferred:**
+- **Redis status cache:** the monitor row already holds the current status. Add the cache when something needs fast reads, such as live dashboard updates.
+
+**Next, in order:**
+1. **Dashboard (phase 2):**
+   - uptime % and average latency (24 h / 7 d)
+   - a monitor detail page with a Recharts latency chart
+   - a check-history retention policy
+   - later, Socket.io live updates in place of the 15 s polling
+2. **Security before public deployment:**
+   - rate limiting on login and register
+   - moving the session from `localStorage` to httpOnly cookies
+3. **Alerts (phase 3):** Telegram, Slack/Discord webhooks and email, firing when a monitor goes down or recovers, plus a weekly digest.
+4. **SaaS extras (phase 4):**
+   - public status pages
+   - multi-region checks
+   - AI analysis of downtime patterns
+5. **DevOps (the rest of phase 5):**
+   - Docker images and deploy
+   - Prometheus + Grafana
 
 ---
 

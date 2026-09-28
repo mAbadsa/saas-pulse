@@ -1,8 +1,10 @@
 # SaaS Pulse
 
+[![CI](https://github.com/mAbadsa/saas-pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/mAbadsa/saas-pulse/actions/workflows/ci.yml)
+
 A real-time infrastructure monitoring platform. SaaS Pulse watches your servers, APIs and websites, and tracks their uptime, latency and response status.
 
-> **Status:** early development. Auth and monitor management are in place; the ping service and dashboard are next — see the [roadmap](docs/ROADMAP.md).
+> **Status:** early development. The API (auth, monitors, automatic checks) and a web app to sign in and manage monitors with live status are in place; charts, uptime stats and alerts are next — see the [roadmap](docs/ROADMAP.md).
 
 ## Tech Stack
 
@@ -44,7 +46,7 @@ npm run dev:api   # http://localhost:3000
 npm run dev:web   # http://localhost:5173
 ```
 
-Open http://localhost:5173. The page should show the API health status, with both `database` and `redis` reported as `ok`.
+Open http://localhost:5173, create an account and add a monitor. It shows **Pending**, then **Up** or **Down** after the first check (about 15 s). To check the API itself, `curl localhost:3000/health`.
 
 ## Scripts
 
@@ -64,6 +66,16 @@ Per-app scripts:
 - **API:** `npm run test -w @saas-pulse/api`. Also available: `test:e2e`, `lint`, `format`.
 - **Web:** `npm run lint -w @saas-pulse/web`.
 
+## CI
+
+Every push and pull request runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+- lint for the API and web app (it also fails if lint would reformat any file)
+- API unit tests
+- API e2e tests against real PostgreSQL 15 and Redis services
+- the full build
+
+The JWT secret is generated per run; nothing secret is committed.
+
 ## Environment Variables
 
 | Variable | Used by | Default |
@@ -74,6 +86,9 @@ Per-app scripts:
 | `CORS_ORIGIN` | API | `http://localhost:5173` |
 | `JWT_SECRET` | API | (required; generate with `openssl rand -hex 32`) |
 | `JWT_EXPIRES_IN` | API | `1d` |
+| `PING_ENABLED` | API | `true` (set `false` to stop the background checker) |
+| `PING_ALLOW_PRIVATE` | API | `false`; **local dev only**: lets monitors reach `localhost`/private IPs |
+| `PING_TIMEOUT_MS` | API | `10000` |
 | `VITE_API_URL` | Web | `http://localhost:3000` |
 
 ## API
