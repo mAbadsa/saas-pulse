@@ -80,7 +80,7 @@ description: "Task list for 007-dashboard-stats"
   - performance: insert 20,160 checks across 7 days for one monitor (with `createMany`), time `GET /monitors/:id/stats?range=7d`, and require under 1000 ms
 - [X] T016 [P] Docs: add the stats endpoints and `CHECK_RETENTION_DAYS` to `README.md`; update `CLAUDE.md` (the monitors/stats entry, retention, the web detail page, the Roadmap "Done" list)
 - [X] T017 Run lint (API and web), unit tests, e2e tests and build; fix any failures
-- [ ] T018 Manual quickstart in the browser (done by the user, as before)
+- [X] T018 Manual quickstart in the browser (done by the user, as before)
 
 ## Dependencies
 
@@ -93,3 +93,4 @@ Setup → T004 → T005/T006 → US1 → US2 → US3 → T015 → Polish.
 - **Chart colour:** `--chart-1` changed from the neutral gray, which failed the dataviz chroma floor and "reads gray", to `#2a78d6` (light) and `#3987e5` (dark). Both pass `validate_palette.js` against the card backgrounds.
 - **Detail page lazy-loaded** (`React.lazy`) so Recharts is its own chunk (about 357 kB). The main bundle stays at about 354 kB, and Vite's 500 kB warning is resolved.
 - **T018 (browser walkthrough) is left for the user**, as in 005.
+- **T018 done by the user on 2026-09-28:** a manual walkthrough of the dashboard stats quickstart (list stats, detail page, chart tooltip, 24h/7d toggle and reload, recent-check errors, dark mode, not-found page). Everything worked as expected.
