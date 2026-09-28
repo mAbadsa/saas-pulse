@@ -63,3 +63,39 @@ export interface UpdateMonitorRequest {
   intervalSeconds?: number;
   isActive?: boolean;
 }
+
+export type StatsRange = '24h' | '7d';
+
+export interface MonitorStatsSummary {
+  monitorId: string;
+  checks: number;
+  uptimePercent: number | null;
+  avgLatencyMs: number | null;
+}
+
+export interface StatsPoint {
+  t: string;
+  checks: number;
+  uptimePercent: number | null;
+  avgLatencyMs: number | null;
+}
+
+export interface CheckResponse {
+  id: string;
+  checkedAt: string;
+  isUp: boolean;
+  statusCode: number | null;
+  latencyMs: number | null;
+  error: string | null;
+}
+
+export interface MonitorStatsDetail {
+  monitorId: string;
+  range: StatsRange;
+  bucketSeconds: number;
+  checks: number;
+  uptimePercent: number | null;
+  avgLatencyMs: number | null;
+  series: StatsPoint[];
+  recent: CheckResponse[];
+}

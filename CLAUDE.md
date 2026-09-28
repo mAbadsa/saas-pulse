@@ -5,8 +5,8 @@
 **SaaS Pulse** is a full-stack, real-time infrastructure monitoring platform (SaaS). It monitors servers, APIs and websites for uptime, latency and response status. It is built as a monorepo with a modern DevOps setup.
 
 **Current state:** early stage.
-- The API has `/`, `/health`, JWT auth (`/auth/*`) and monitors CRUD (`/monitors`), and a ping service that checks active monitors automatically. The web dashboard is next.
-- The web app has sign-in/register and a monitors page (list with live status, add/edit, pause/resume, delete).
+- The API has `/`, `/health`, JWT auth (`/auth/*`), monitors CRUD, uptime/latency stats (`/monitors/stats`, `/monitors/:id/stats`), and a ping service that checks active monitors automatically and prunes old checks.
+- The web app has sign-in/register, a monitors page (live status, 24 h uptime and latency, add/edit, pause/resume, delete) and a monitor detail page (24 h / 7 d stats, a latency chart, recent checks).
 
 ---
 
@@ -15,7 +15,7 @@
 Items marked *(planned)* are part of the target stack but are not installed yet. Add them when the feature that needs them is built.
 
 - **Architecture:** monorepo using npm workspaces (`package-lock.json`, so use npm, not pnpm)
-- **Frontend (`apps/web`):** React 19, Vite, Tailwind CSS v4, shadcn/ui (Base UI, lucide-react), Recharts *(planned)*
+- **Frontend (`apps/web`):** React 19, Vite, Tailwind CSS v4, shadcn/ui (Base UI, lucide-react), Recharts
 - **Backend (`apps/api`):** NestJS 11, TypeScript, Prisma 6 ORM, ioredis, Socket.io *(planned)*. The ping loop is a plain `setInterval`, not `@nestjs/schedule`.
 - **Database & cache:** PostgreSQL 15, Redis
 - **Shared (`packages/shared`):** shared TypeScript types, interfaces and validation schemas
@@ -55,7 +55,9 @@ saas-pulse/
 - `src/app.service.ts`: `/health` pings the DB (`SELECT 1`) and Redis.
 - `src/auth/`: register/login/me, the global `AuthGuard`, `@Public()` and `@CurrentUser()`.
 - `src/monitors/`: monitors CRUD. Every query is scoped by `userId`, pause/resume uses `PATCH { isActive }`, and changing the URL resets `status` to `PENDING`.
+- `src/monitors/stats.service.ts`: stats computed on read with raw SQL over `Check`, always scoped by `userId`. The detail query does one index range scan grouped by `date_bin` into raw sums; empty slots and totals are filled in code. `GET stats` is declared before `GET :id` in the controller.
 - `src/ping/`: background checker. A `setInterval` loop (every 10 s) finds due monitors with raw SQL, sends one GET each (no redirects, body discarded) and saves a `Check`. An SSRF guard blocks non-public IPs at connect time (`safeLookup` + `blocked-addresses.ts`). e2e tests set `PING_ENABLED=false` and call `runCycle()` directly; the e2e suites run serially because they share the DB.
+- `src/ping/check-retention.service.ts`: prunes checks older than `CHECK_RETENTION_DAYS` (default 30, minimum 7) hourly. It uses the same `PING_ENABLED` gate; tests call `prune()` directly.
 - `test/`: e2e tests (`*.e2e-spec.ts`), run against the local Docker DB.
 - `prisma/schema.prisma` + `prisma/migrations/`
 
@@ -69,6 +71,7 @@ saas-pulse/
 - Routes (`react-router`): `/login`, `/register` (public-only) and `/` (monitors, needs sign-in). They're set up in `App.tsx`, with `BrowserRouter` + `AuthProvider` in `main.tsx`.
 - `lib/api.ts`: `api<T>(path, { method, body })` adds the Bearer token and throws `ApiError { status, messages }`. A 401 on a non-`/auth/*` call signs out with the "session expired" message.
 - `auth/`: `AuthProvider` + `useAuth()` (in `auth-context.ts`, a separate file for react-refresh). The session lives in `localStorage` (`lib/session.ts`); **moving it to httpOnly cookies is a follow-up before any public deployment.**
+- `monitors/MonitorDetailPage.tsx` (`/monitors/:id?range=24h|7d`, lazy-loaded so Recharts is its own chunk): stat tiles, `LatencyChart` and recent checks. The chart line uses `--chart-1` (a dataviz-validated blue, light and dark in `index.css`); empty slots are gaps (`connectNulls={false}`).
 - `monitors/`: `MonitorsPage` polls `GET /monitors` every 15 s while the tab is visible. The row layout is responsive (cards on mobile), and `StatusBadge` always shows an icon and text. Only set state in promise callbacks when code runs from an effect (the `react-hooks/set-state-in-effect` lint rule).
 - There's no web test runner yet. The gates are `npm run lint -w @saas-pulse/web` and `npm run build`.
 
@@ -146,16 +149,13 @@ The full plan is in `docs/ROADMAP.md`. Each built feature has its spec in `specs
   - ping service (`004`): a `setInterval` loop plus an SSRF guard; Postgres holds the check history and current status
   - web sign-in and monitors UI (`005`)
 - **CI** (`006`), part of phase 5
+- **Dashboard stats** (`007`), part of phase 2: uptime and latency for 24 h / 7 d, a latency chart, recent checks, 30-day check retention
 
 **Deferred:**
 - **Redis status cache:** the monitor row already holds the current status. Add the cache when something needs fast reads, such as live dashboard updates.
 
 **Next, in order:**
-1. **Dashboard (phase 2):**
-   - uptime % and average latency (24 h / 7 d)
-   - a monitor detail page with a Recharts latency chart
-   - a check-history retention policy
-   - later, Socket.io live updates in place of the 15 s polling
+1. **The rest of the dashboard (phase 2):** Socket.io live updates in place of the 15 s polling.
 2. **Security before public deployment:**
    - rate limiting on login and register
    - moving the session from `localStorage` to httpOnly cookies

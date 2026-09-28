@@ -7,15 +7,21 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import type { UserProfile } from '@saas-pulse/shared';
 import { CurrentUser } from '../auth/auth.decorators';
 import { CreateMonitorDto, UpdateMonitorDto } from './monitors.dto';
 import { MonitorsService } from './monitors.service';
+import { StatsQueryDto } from './stats.dto';
+import { StatsService } from './stats.service';
 
 @Controller('monitors')
 export class MonitorsController {
-  constructor(private readonly monitors: MonitorsService) {}
+  constructor(
+    private readonly monitors: MonitorsService,
+    private readonly stats: StatsService,
+  ) {}
 
   @Post()
   create(@CurrentUser() user: UserProfile, @Body() dto: CreateMonitorDto) {
@@ -25,6 +31,21 @@ export class MonitorsController {
   @Get()
   findAll(@CurrentUser() user: UserProfile) {
     return this.monitors.findAll(user.id);
+  }
+
+  // Declared before ':id' so "stats" isn't captured as an id.
+  @Get('stats')
+  summary(@CurrentUser() user: UserProfile) {
+    return this.stats.summaryForUser(user.id);
+  }
+
+  @Get(':id/stats')
+  detail(
+    @CurrentUser() user: UserProfile,
+    @Param('id') id: string,
+    @Query() query: StatsQueryDto,
+  ) {
+    return this.stats.detail(id, user.id, query.range);
   }
 
   @Get(':id')
