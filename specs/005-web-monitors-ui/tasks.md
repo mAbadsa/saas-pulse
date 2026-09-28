@@ -108,7 +108,7 @@ description: "Task list for 005-web-monitors-ui"
 
 - [X] T016 [P] `README.md`: add the web app features to the status line. `CLAUDE.md`: add the `apps/web` structure (routes, `lib/api.ts`, `AuthProvider`, `monitors/`) and the note about the session in localStorage.
 - [X] T017 Run `npm run lint -w @saas-pulse/web` and `npm run build`, and fix any failures
-- [ ] T018 Walk through the quickstart against the running API and web app, including the 375 px width and keyboard-only steps
+- [X] T018 Walk through the quickstart against the running API and web app, including the 375 px width and keyboard-only steps
 
 ## Dependencies
 
@@ -128,3 +128,4 @@ T001–T002 → T003–T005 (in parallel) → T006 → T007 → US1 → US2 → 
   - wrong credentials show an alert that gets focus, the email is kept and the password is cleared
   - accessible names on the fields
 - **T018 (the rest of the quickstart) was handed to the user.** The walkthrough stopped because the shared Chrome profile was signed in to the user's real account; add/edit/pause/delete, live refresh, the 375 px layout and keyboard-only use aren't browser-verified by the implementer.
+- **T018 done by the user on 2026-09-28:** a manual walkthrough of the full quickstart (sign-in/register, add, live status update, edit, pause/resume, delete, reload persistence, the 375 px layout, keyboard-only use). Everything worked as expected.
