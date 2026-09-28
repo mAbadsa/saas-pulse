@@ -4,7 +4,7 @@
 
 A real-time infrastructure monitoring platform. SaaS Pulse watches your servers, APIs and websites, and tracks their uptime, latency and response status.
 
-> **Status:** early development. The API (auth, monitors, automatic checks) and a web app to sign in and manage monitors with live status are in place; charts, uptime stats and alerts are next — see the [roadmap](docs/ROADMAP.md).
+> **Status:** early development. The API (auth, monitors, automatic checks, uptime/latency stats) and a web app with live status, 24 h stats and per-monitor latency charts are in place; alerts are next — see the [roadmap](docs/ROADMAP.md).
 
 ## Tech Stack
 
@@ -89,6 +89,7 @@ The JWT secret is generated per run; nothing secret is committed.
 | `PING_ENABLED` | API | `true` (set `false` to stop the background checker) |
 | `PING_ALLOW_PRIVATE` | API | `false`; **local dev only**: lets monitors reach `localhost`/private IPs |
 | `PING_TIMEOUT_MS` | API | `10000` |
+| `CHECK_RETENTION_DAYS` | API | `30` (minimum 7); older checks are deleted hourly |
 | `VITE_API_URL` | Web | `http://localhost:3000` |
 
 ## API
@@ -104,6 +105,8 @@ The JWT secret is generated per run; nothing secret is committed.
 | GET | `/monitors` | List your monitors, newest first |
 | GET | `/monitors/:id` | Get one of your monitors |
 | PATCH | `/monitors/:id` | Update `name`, `url`, `intervalSeconds`, or `isActive` (pause/resume) |
+| GET | `/monitors/stats` | 24 h uptime % and average latency for each of your monitors |
+| GET | `/monitors/:id/stats?range=24h\|7d` | Period uptime/latency, a time series (1 h / 6 h slots) and the 20 most recent checks |
 | DELETE | `/monitors/:id` | Delete a monitor and its check history |
 
 Every endpoint except `/`, `/health`, `/auth/register` and `/auth/login` requires `Authorization: Bearer <accessToken>`.

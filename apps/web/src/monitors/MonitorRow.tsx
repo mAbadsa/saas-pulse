@@ -1,11 +1,14 @@
-import type { MonitorResponse } from '@saas-pulse/shared';
+import type { MonitorResponse, MonitorStatsSummary } from '@saas-pulse/shared';
 import { Pause, Pencil, Play, Trash2 } from 'lucide-react';
+import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
+import { formatLatency, formatUptime } from '@/lib/format';
 import { relativeTime } from '@/lib/time';
 import { StatusBadge } from './StatusBadge';
 
 interface Props {
   monitor: MonitorResponse;
+  stats?: MonitorStatsSummary;
   busy: boolean;
   onToggle: () => void;
   onEdit: () => void;
@@ -13,14 +16,18 @@ interface Props {
 }
 
 /** Stacks on phones, one line from `sm` up (card layout instead of a wide table). */
-export function MonitorRow({ monitor, busy, onToggle, onEdit, onDelete }: Props) {
+export function MonitorRow({ monitor, stats, busy, onToggle, onEdit, onDelete }: Props) {
   const m = monitor;
   return (
     <li className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium" title={m.name}>
+        <Link
+          to={`/monitors/${m.id}`}
+          className="block truncate font-medium hover:underline focus-visible:underline"
+          title={m.name}
+        >
           {m.name}
-        </p>
+        </Link>
         <p className="text-muted-foreground truncate text-sm" title={m.url}>
           {m.url}
         </p>
@@ -33,6 +40,11 @@ export function MonitorRow({ monitor, busy, onToggle, onEdit, onDelete }: Props)
             Checked {relativeTime(m.lastCheckedAt).toLowerCase()}
           </time>
           {' · '}every {m.intervalSeconds}s
+        </span>
+        <span className="text-muted-foreground w-full text-xs">
+          {stats && stats.checks > 0
+            ? `${formatUptime(stats.uptimePercent)} uptime · ${formatLatency(stats.avgLatencyMs)} avg · 24h`
+            : 'No data yet'}
         </span>
       </div>
 

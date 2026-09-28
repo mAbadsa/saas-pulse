@@ -1,4 +1,4 @@
-import type { MonitorResponse } from '@saas-pulse/shared';
+import type { MonitorResponse, MonitorStatsSummary } from '@saas-pulse/shared';
 import { Activity, LogOut, Plus, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/auth/auth-context';
@@ -13,6 +13,7 @@ const REFRESH_MS = 15_000;
 export function MonitorsPage() {
   const { user, signOut } = useAuth();
   const [monitors, setMonitors] = useState<MonitorResponse[] | null>(null);
+  const [stats, setStats] = useState<Map<string, MonitorStatsSummary>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   // null = closed, 'new' = add, otherwise the monitor being edited
@@ -22,9 +23,13 @@ export function MonitorsPage() {
   // State is only set in promise callbacks: load() runs from an effect (react-hooks/set-state-in-effect).
   const load = useCallback(
     () =>
-      api<MonitorResponse[]>('/monitors')
-        .then((data) => {
-          setMonitors(data);
+      Promise.all([
+        api<MonitorResponse[]>('/monitors'),
+        api<MonitorStatsSummary[]>('/monitors/stats'),
+      ])
+        .then(([list, summaries]) => {
+          setMonitors(list);
+          setStats(new Map(summaries.map((s) => [s.monitorId, s])));
           setError(null);
         })
         .catch((err: unknown) => {
@@ -132,6 +137,7 @@ export function MonitorsPage() {
               <MonitorRow
                 key={m.id}
                 monitor={m}
+                stats={stats.get(m.id)}
                 busy={busyId === m.id}
                 onToggle={() => void toggle(m)}
                 onEdit={() => setEditing(m)}

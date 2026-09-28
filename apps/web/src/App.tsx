@@ -1,8 +1,15 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { useAuth } from './auth/auth-context';
 import { AuthPage } from './auth/AuthPage';
 import { MonitorsPage } from './monitors/MonitorsPage';
+
+// Split out so Recharts only loads when a detail page is opened.
+const MonitorDetailPage = lazy(() =>
+  import('./monitors/MonitorDetailPage').then((m) => ({
+    default: m.MonitorDetailPage,
+  })),
+);
 
 function RequireAuth({ children }: { children: ReactNode }) {
   return useAuth().user ? children : <Navigate to="/login" replace />;
@@ -36,6 +43,22 @@ export default function App() {
         element={
           <RequireAuth>
             <MonitorsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/monitors/:id"
+        element={
+          <RequireAuth>
+            <Suspense
+              fallback={
+                <p className="text-muted-foreground p-6" aria-busy="true">
+                  Loading…
+                </p>
+              }
+            >
+              <MonitorDetailPage />
+            </Suspense>
           </RequireAuth>
         }
       />
