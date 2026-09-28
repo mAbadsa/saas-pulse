@@ -2,6 +2,7 @@ import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 import { AppController } from './app.controller';
+import { AlertsModule } from './alerts/alerts.module';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { MonitorsModule } from './monitors/monitors.module';
@@ -20,6 +21,7 @@ import { RedisModule } from './redis/redis.module';
     AuthModule,
     MonitorsModule,
     PingModule,
+    AlertsModule,
   ],
   controllers: [AppController],
   providers: [

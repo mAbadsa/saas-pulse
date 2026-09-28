@@ -13,14 +13,19 @@ enum MonitorStatus {
   DOWN
 }
 
+enum AlertChannelType {
+  TELEGRAM
+}
+
 model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  name      String?
-  password  String
-  monitors  Monitor[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  password      String
+  monitors      Monitor[]
+  alertChannels AlertChannel[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model Monitor {
@@ -31,6 +36,7 @@ model Monitor {
   isActive        Boolean       @default(true)
   status          MonitorStatus @default(PENDING)
   lastCheckedAt   DateTime?
+  alertDownSince  DateTime? // non-null = a down alert is outstanding (value: when failures started)
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   checks          Check[]
@@ -51,4 +57,17 @@ model Check {
   checkedAt  DateTime @default(now())
 
   @@index([monitorId, checkedAt])
+}
+
+model AlertChannel {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      AlertChannelType
+  target    String // Telegram chat id
+  enabled   Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([userId, type])
 }

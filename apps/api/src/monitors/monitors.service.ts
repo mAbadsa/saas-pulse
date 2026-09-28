@@ -64,7 +64,11 @@ export class MonitorsService {
           url,
           intervalSeconds,
           isActive,
-          ...(urlChanged && { status: 'PENDING', lastCheckedAt: null }),
+          ...(urlChanged && {
+            status: 'PENDING',
+            lastCheckedAt: null,
+            alertDownSince: null, // don't send "recovered" for the old address
+          }),
         },
         select: SELECT,
       });

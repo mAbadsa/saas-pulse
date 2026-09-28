@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router';
 import { useAuth } from './auth/auth-context';
 import { AuthPage } from './auth/AuthPage';
 import { MonitorsPage } from './monitors/MonitorsPage';
+import { SettingsPage } from './settings/SettingsPage';
 
 // Split out so Recharts only loads when a detail page is opened.
 const MonitorDetailPage = lazy(() =>
@@ -59,6 +60,14 @@ export default function App() {
             >
               <MonitorDetailPage />
             </Suspense>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <RequireAuth>
+            <SettingsPage />
           </RequireAuth>
         }
       />
