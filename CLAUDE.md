@@ -16,13 +16,13 @@ Items marked *(planned)* are part of the target stack but are not installed yet.
 
 - **Architecture:** monorepo using npm workspaces (`package-lock.json`, so use npm, not pnpm)
 - **Frontend (`apps/web`):** React 19, Vite, Tailwind CSS v4, shadcn/ui (Base UI, lucide-react), Recharts *(planned)*
-- **Backend (`apps/api`):** NestJS 11, TypeScript, Prisma 6 ORM, ioredis, `@nestjs/schedule` for cron jobs *(planned)*, Socket.io *(planned)*
+- **Backend (`apps/api`):** NestJS 11, TypeScript, Prisma 6 ORM, ioredis, Socket.io *(planned)*. The ping loop is a plain `setInterval`, not `@nestjs/schedule`.
 - **Database & cache:** PostgreSQL 15, Redis
 - **Shared (`packages/shared`):** shared TypeScript types, interfaces and validation schemas
 - **DevOps & infra:**
   - Docker & Docker Compose (local Postgres + Redis)
   - Nginx *(planned)*
-  - GitHub Actions CI/CD *(planned: `.github/workflows/` is empty)*
+  - GitHub Actions CI: `.github/workflows/ci.yml` runs lint, the formatting-drift check, unit and e2e tests (Postgres + Redis services) and the build on every push and PR. Deploy is *(planned)*.
 
 ---
 
@@ -39,7 +39,7 @@ saas-pulse/
 │   ├── docker/             # Custom Dockerfiles & Nginx configs (empty)
 │   └── terrfaform/         # Infrastructure as Code, optional (empty; folder name is misspelled)
 ├── .github/
-│   └── workflows/          # CI/CD pipelines (empty)
+│   └── workflows/ci.yml    # CI: lint, tests, e2e, build
 ├── specs/                  # Spec Kit feature specs (spec/plan/tasks per feature)
 ├── .specify/               # Spec Kit config, templates & scripts
 ├── docker-compose.yml      # Local dev services (PostgreSQL & Redis)
@@ -137,31 +137,36 @@ These credentials come from `docker-compose.yml` and are for local development o
 
 ## 🗺️ Roadmap
 
-The full plan is in `docs/ROADMAP.md`. Build in this order. Nothing below is implemented yet.
+The full plan is in `docs/ROADMAP.md`. Each built feature has its spec in `specs/NNN-*/`.
 
-1. **Core (MVP)**
-   - **Monitors CRUD:** name, URL and ping interval. Monitors can be paused and resumed. Deleting a monitor also deletes its logs.
-   - **Ping service:** a `@nestjs/schedule` cron job (for example, every minute) that:
-     - sends an HTTP GET to each active monitor,
-     - records the status code and latency in ms,
-     - catches timeouts and network failures and logs the exact error.
-   - **Logging & caching:**
-     - Every check is saved to Postgres through Prisma.
-     - The current status of each monitor is cached in Redis, and dashboard reads come from Redis, not the DB.
-   - **Auth:** JWT for register, login and route protection. Multi-tenant: every query is scoped to the current user's own data.
-2. **Dashboard (web)**
-   - Status cards with badges: UP (green), DOWN (red), PENDING (gray).
-   - Average latency and uptime %.
-   - Live updates over Socket.io, with no page refresh.
-   - Recharts latency charts for the last 24 hours and 7 days.
-3. **Alerts:** Telegram bot, Slack/Discord webhooks, and email. Alerts fire when a monitor goes down or recovers; email also sends a weekly digest.
-4. **SaaS extras:**
-   - Public status pages (for example, `status.pulse.com/<company>`).
-   - Multi-region checks (for example, EU and US-East) to avoid false positives.
-   - AI analysis of recurring downtime patterns.
-5. **DevOps:**
-   - GitHub Actions: test, lint, Docker image build and deploy check on every push.
-   - Prometheus + Grafana for the app's own metrics.
+**Done:**
+- **Phase 1 (MVP):**
+  - JWT auth (`002`)
+  - monitors CRUD (`003`)
+  - ping service (`004`): a `setInterval` loop plus an SSRF guard; Postgres holds the check history and current status
+  - web sign-in and monitors UI (`005`)
+- **CI** (`006`), part of phase 5
+
+**Deferred:**
+- **Redis status cache:** the monitor row already holds the current status. Add the cache when something needs fast reads, such as live dashboard updates.
+
+**Next, in order:**
+1. **Dashboard (phase 2):**
+   - uptime % and average latency (24 h / 7 d)
+   - a monitor detail page with a Recharts latency chart
+   - a check-history retention policy
+   - later, Socket.io live updates in place of the 15 s polling
+2. **Security before public deployment:**
+   - rate limiting on login and register
+   - moving the session from `localStorage` to httpOnly cookies
+3. **Alerts (phase 3):** Telegram, Slack/Discord webhooks and email, firing when a monitor goes down or recovers, plus a weekly digest.
+4. **SaaS extras (phase 4):**
+   - public status pages
+   - multi-region checks
+   - AI analysis of downtime patterns
+5. **DevOps (the rest of phase 5):**
+   - Docker images and deploy
+   - Prometheus + Grafana
 
 ---
 

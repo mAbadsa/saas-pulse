@@ -1,5 +1,7 @@
 # SaaS Pulse
 
+[![CI](https://github.com/mAbadsa/saas-pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/mAbadsa/saas-pulse/actions/workflows/ci.yml)
+
 A real-time infrastructure monitoring platform. SaaS Pulse watches your servers, APIs and websites, and tracks their uptime, latency and response status.
 
 > **Status:** early development. The API (auth, monitors, automatic checks) and a web app to sign in and manage monitors with live status are in place; charts, uptime stats and alerts are next — see the [roadmap](docs/ROADMAP.md).
@@ -63,6 +65,16 @@ Run these from the repo root:
 Per-app scripts:
 - **API:** `npm run test -w @saas-pulse/api`. Also available: `test:e2e`, `lint`, `format`.
 - **Web:** `npm run lint -w @saas-pulse/web`.
+
+## CI
+
+Every push and pull request runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+- lint for the API and web app (it also fails if lint would reformat any file)
+- API unit tests
+- API e2e tests against real PostgreSQL 15 and Redis services
+- the full build
+
+The JWT secret is generated per run; nothing secret is committed.
 
 ## Environment Variables
 
