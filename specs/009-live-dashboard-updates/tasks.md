@@ -79,19 +79,19 @@
 
 ### E2E Tests for User Story 2
 
-- [ ] T028 [P] [US2] Write E2E test: Connection established only on `/monitors` page, not on other pages
-- [ ] T029 [P] [US2] Write E2E test: Connection closed after component unmount (DevTools should show closed socket)
-- [ ] T030 [P] [US2] Write E2E test: No socket connections leak after navigating away from monitors page
+- [x] T028 [P] [US2] Write E2E test: Connection established only on `/monitors` page, not on other pages
+- [x] T029 [P] [US2] Write E2E test: Connection closed after component unmount (DevTools should show closed socket)
+- [x] T030 [P] [US2] Write E2E test: No socket connections leak after navigating away from monitors page
 
 ### Implementation for User Story 2
 
-- [ ] T031 [US2] Enhance `useSocket()` hook in `apps/web/src/hooks/useSocket.ts`: Add `useEffect` with cleanup to disconnect socket on unmount
-- [ ] T032 [US2] Implement tab visibility state management: Listen to `visibilitychange` event in `useSocket()` hook
-- [ ] T033 [US2] Implement pause/resume logic: When `document.hidden === true`, call `socket.disconnect()`; when `false`, call `socket.connect()`
-- [ ] T034 [US2] Update `useMonitorUpdates()` hook to handle reconnection: When socket reconnects, fetch full state via `GET /monitors` (existing API call) to sync after offline period
-- [ ] T035 [US2] Add `socket.on('reconnect', ...)` listener to `useMonitorUpdates()`: Trigger full state sync (call `fetchMonitors()`)
-- [ ] T036 [US2] Update `MonitorsPage.tsx` to display connection state indicator (optional UI: small icon showing "Live" or "Polling") for debugging
-- [ ] T037 [US2] Add debug logging: Socket connect/disconnect events logged to console (non-blocking)
+- [x] T031 [US2] Enhance `useSocket()` hook in `apps/web/src/hooks/useSocket.ts`: Add `useEffect` with cleanup to disconnect socket on unmount
+- [x] T032 [US2] Implement tab visibility state management: Listen to `visibilitychange` event in `useSocket()` hook
+- [x] T033 [US2] Implement pause/resume logic: When `document.hidden === true`, call `socket.disconnect()`; when `false`, call `socket.connect()`
+- [x] T034 [US2] Update `useMonitorUpdates()` hook to handle reconnection: When socket reconnects, fetch full state via `GET /monitors` (existing API call) to sync after offline period
+- [x] T035 [US2] Add `socket.on('reconnect', ...)` listener to `useMonitorUpdates()`: Trigger full state sync (call `fetchMonitors()`)
+- [x] T036 [US2] Update `MonitorsPage.tsx` to display connection state indicator (optional UI: small icon showing "Live" or "Polling") for debugging
+- [x] T037 [US2] Add debug logging: Socket connect/disconnect events logged to console (non-blocking)
 
 **Checkpoint**: Connection lifecycle managed correctly. No socket leaks. Users see live indicator. Story 2 independently testable.
 
@@ -105,19 +105,19 @@
 
 ### E2E Tests for User Story 3
 
-- [ ] T038 [P] [US3] Write E2E test: Stat update event emitted after check is recorded
-- [ ] T039 [P] [US3] Write E2E test: Event includes all stat fields (uptime24h, latency24hAvg, latency24hMin, latency24hMax, timestamp)
-- [ ] T040 [P] [US3] Write E2E test: Only user's own monitor stats are sent to their room (multi-user isolation)
+- [x] T038 [P] [US3] Write E2E test: Stat update event emitted after check is recorded
+- [x] T039 [P] [US3] Write E2E test: Event includes all stat fields (uptime24h, latency24hAvg, latency24hMin, latency24hMax, timestamp)
+- [x] T040 [P] [US3] Write E2E test: Only user's own monitor stats are sent to their room (multi-user isolation)
 
 ### Implementation for User Story 3
 
-- [ ] T041 [US3] Modify `apps/api/src/ping/ping.service.ts` in `recordResult()` method: After check is recorded and status updated, recompute stats for the monitor via `StatsService` (existing), then call `socketService.emitStatUpdate(userId, monitorId, uptime24h, latency24hAvg, latency24hMin, latency24hMax, Date.now())`
-- [ ] T042 [US3] Update `useMonitorUpdates()` hook to handle `monitor:stats-update` events: Listen to `socket.on('monitor:stats-update', ...)`
-- [ ] T043 [US3] Implement stat deduplication in hook: Only process events where `event.timestamp > lastSeenTimestamp[monitorId]` (same as status updates)
-- [ ] T044 [US3] Update `MonitorsPage.tsx` monitor row component: Listen to stat updates and re-render uptime % and latency tiles when events arrive
-- [ ] T045 [US3] Update `MonitorDetailPage.tsx`: Listen to stat updates for viewed monitor and update stat tiles in detail page in real-time
-- [ ] T046 [US3] Update latency chart on detail page (if exists): Add new latency data point without full-page reload (append to existing data)
-- [ ] T047 [US3] Add logging to `SocketService` for stat update events (debug via API logs)
+- [x] T041 [US3] Modify `apps/api/src/ping/ping.service.ts` in `recordResult()` method: After check is recorded and status updated, recompute stats for the monitor via `StatsService` (existing), then call `socketService.emitStatUpdate(userId, monitorId, uptime24h, latency24hAvg, latency24hMin, latency24hMax, Date.now())`
+- [x] T042 [US3] Update `useMonitorUpdates()` hook to handle `monitor:stats-update` events: Listen to `socket.on('monitor:stats-update', ...)`
+- [x] T043 [US3] Implement stat deduplication in hook: Only process events where `event.timestamp > lastSeenTimestamp[monitorId]` (same as status updates)
+- [x] T044 [US3] Update `MonitorsPage.tsx` monitor row component: Listen to stat updates and re-render uptime % and latency tiles when events arrive
+- [x] T045 [US3] Update `MonitorDetailPage.tsx`: Listen to stat updates for viewed monitor and update stat tiles in detail page in real-time
+- [x] T046 [US3] Update latency chart on detail page (if exists): Add new latency data point without full-page reload (append to existing data)
+- [x] T047 [US3] Add logging to `SocketService` for stat update events (debug via API logs)
 
 **Checkpoint**: Stat tiles update in real-time. Users see uptime % and latency change instantly as checks complete. Story 3 independently testable.
 
@@ -131,18 +131,18 @@
 
 ### E2E Tests for User Story 4
 
-- [ ] T048 [P] [US4] Write E2E test: Connection failure triggers fallback to polling
-- [ ] T049 [P] [US4] Write E2E test: When polling resumes, status and stat updates still arrive (every 15 seconds)
-- [ ] T050 [P] [US4] Write E2E test: No errors in console when Socket.io unavailable; app continues to function
+- [x] T048 [P] [US4] Write E2E test: Connection failure triggers fallback to polling
+- [x] T049 [P] [US4] Write E2E test: When polling resumes, status and stat updates still arrive (every 15 seconds)
+- [x] T050 [P] [US4] Write E2E test: No errors in console when Socket.io unavailable; app continues to function
 
 ### Implementation for User Story 4
 
-- [ ] T051 [US4] Update `useMonitorUpdates()` hook to detect Socket.io disconnect: Add `socket.on('disconnect', ...)`
-- [ ] T052 [US4] Implement polling fallback: When `socket.on('disconnect')` fires, enable polling timer to call `fetchMonitors()` every 15 seconds
-- [ ] T053 [US4] Implement polling resume: When `socket.on('connect')` fires, disable polling timer and resume real-time listening
-- [ ] T054 [US4] Handle failed Socket.io connection attempt: If connection never establishes, fallback to polling automatically within 1 second
-- [ ] T055 [US4] Add visual indicator (optional): When polling is active (Socket.io down), show a small "Polling" badge instead of "Live" (helps users understand why updates are delayed)
-- [ ] T056 [US4] Ensure no duplicate polling + real-time events: When both are running temporarily, ensure updates are not doubled
+- [x] T051 [US4] Update `useMonitorUpdates()` hook to detect Socket.io disconnect: Add `socket.on('disconnect', ...)`
+- [x] T052 [US4] Implement polling fallback: When `socket.on('disconnect')` fires, enable polling timer to call `fetchMonitors()` every 15 seconds
+- [x] T053 [US4] Implement polling resume: When `socket.on('connect')` fires, disable polling timer and resume real-time listening
+- [x] T054 [US4] Handle failed Socket.io connection attempt: If connection never establishes, fallback to polling automatically within 1 second
+- [x] T055 [US4] Add visual indicator (optional): When polling is active (Socket.io down), show a small "Polling" badge instead of "Live" (helps users understand why updates are delayed)
+- [x] T056 [US4] Ensure no duplicate polling + real-time events: When both are running temporarily, ensure updates are not doubled
 
 **Checkpoint**: Graceful fallback fully implemented. If Socket.io fails, users see updates via polling (slower but reliable). Story 4 independently testable.
 
@@ -152,17 +152,17 @@
 
 **Purpose**: Validation, documentation, and quality improvements across all stories
 
-- [ ] T057 [P] Run manual validation against `quickstart.md` scenarios (all 8 scenarios, manual testing required)
-- [ ] T058 [P] Verify all E2E tests pass: `npm run test:e2e -w @saas-pulse/api` (Socket.io test suite)
-- [ ] T059 [P] Verify API linting and formatting: `npm run lint -w @saas-pulse/api` and `npm run format -w @saas-pulse/api`
-- [ ] T060 [P] Verify web linting: `npm run lint -w @saas-pulse/web`
-- [ ] T061 Add feature documentation to project README (Socket.io real-time feature description)
-- [ ] T062 Add Socket.io event type documentation in `packages/shared/src/socket-events.ts` (JSDoc comments for API clients)
-- [ ] T063 Create `.env.example` update if Socket.io requires new environment variables
-- [ ] T064 Add Socket.io connection debug output to web app console (during development)
-- [ ] T065 Code cleanup: Remove any placeholder comments, dead code, or debug logs
-- [ ] T066 Verify cross-browser WebSocket support (Chrome, Firefox, Safari) via manual testing
-- [ ] T067 Verify multi-user isolation via E2E tests (two authenticated users cannot see each other's updates)
+- [x] T057 [P] Run manual validation against `quickstart.md` scenarios (all 8 scenarios, manual testing required)
+- [x] T058 [P] Verify all E2E tests pass: `npm run test:e2e -w @saas-pulse/api` (Socket.io test suite)
+- [x] T059 [P] Verify API linting and formatting: `npm run lint -w @saas-pulse/api` and `npm run format -w @saas-pulse/api`
+- [x] T060 [P] Verify web linting: `npm run lint -w @saas-pulse/web`
+- [x] T061 Add feature documentation to project README (Socket.io real-time feature description)
+- [x] T062 Add Socket.io event type documentation in `packages/shared/src/socket-events.ts` (JSDoc comments for API clients)
+- [x] T063 Create `.env.example` update if Socket.io requires new environment variables
+- [x] T064 Add Socket.io connection debug output to web app console (during development)
+- [x] T065 Code cleanup: Remove any placeholder comments, dead code, or debug logs
+- [x] T066 Verify cross-browser WebSocket support (Chrome, Firefox, Safari) via manual testing
+- [x] T067 Verify multi-user isolation via E2E tests (two authenticated users cannot see each other's updates)
 
 ---
 
