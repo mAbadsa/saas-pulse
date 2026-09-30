@@ -5,8 +5,8 @@
 **SaaS Pulse** is a full-stack, real-time infrastructure monitoring platform (SaaS). It monitors servers, APIs and websites for uptime, latency and response status. It is built as a monorepo with a modern DevOps setup.
 
 **Current state:** early stage.
-- The API has `/`, `/health`, JWT auth (`/auth/*`), monitors CRUD, uptime/latency stats (`/monitors/stats`, `/monitors/:id/stats`), and a ping service that checks active monitors automatically and prunes old checks.
-- The web app has sign-in/register, a monitors page (live status, 24 h uptime and latency, add/edit, pause/resume, delete) and a monitor detail page (24 h / 7 d stats, a latency chart, recent checks).
+- The API has `/`, `/health`, JWT auth (`/auth/*`), monitors CRUD, uptime/latency stats (`/monitors/stats`, `/monitors/:id/stats`), Telegram alerts (`/alerts/telegram`), and a ping service that checks active monitors automatically and prunes old checks.
+- The web app has sign-in/register, a monitors page (live status, 24 h uptime and latency, add/edit, pause/resume, delete), a monitor detail page (24 h / 7 d stats, a latency chart, recent checks) and `/settings` (connect Telegram alerts).
 
 ---
 
@@ -58,6 +58,12 @@ saas-pulse/
 - `src/monitors/stats.service.ts`: stats computed on read with raw SQL over `Check`, always scoped by `userId`. The detail query does one index range scan grouped by `date_bin` into raw sums; empty slots and totals are filled in code. `GET stats` is declared before `GET :id` in the controller.
 - `src/ping/`: background checker. A `setInterval` loop (every 10 s) finds due monitors with raw SQL, sends one GET each (no redirects, body discarded) and saves a `Check`. An SSRF guard blocks non-public IPs at connect time (`safeLookup` + `blocked-addresses.ts`). e2e tests set `PING_ENABLED=false` and call `runCycle()` directly; the e2e suites run serially because they share the DB.
 - `src/ping/check-retention.service.ts`: prunes checks older than `CHECK_RETENTION_DAYS` (default 30, minimum 7) hourly. It uses the same `PING_ENABLED` gate; tests call `prune()` directly.
+- `src/alerts/`: Telegram alerts.
+  - `TelegramClient` is a small `fetch` wrapper; the token only lives in env and request URLs are never logged.
+  - `TelegramPoller` long-polls `getUpdates` and handles `/start <code>`. It uses the same `PING_ENABLED` gate; tests call `handleUpdate()`.
+  - `LinkCodes` are in-memory, single-use and last 10 minutes.
+  - `AlertsService.onCheckRecorded()` is the incident state machine on `Monitor.alertDownSince`. It uses guarded `updateMany` calls for dedupe, a 2-failure threshold and fire-and-forget delivery. `PingService.recordResult` calls it; a URL change clears it.
+  - Alert channels are stored in `AlertChannel` (one per user per type), ready for email and webhooks later.
 - `test/`: e2e tests (`*.e2e-spec.ts`), run against the local Docker DB.
 - `prisma/schema.prisma` + `prisma/migrations/`
 
@@ -115,6 +121,7 @@ REDIS_PORT=6389
 JWT_SECRET=<openssl rand -hex 32>   # required; the API refuses to start without it
 JWT_EXPIRES_IN=1d
 PING_ALLOW_PRIVATE=true   # local dev only: lets monitors reach localhost
+TELEGRAM_BOT_TOKEN=       # optional: from @BotFather; enables Telegram alerts
 ```
 
 These credentials come from `docker-compose.yml` and are for local development only.
@@ -150,6 +157,7 @@ The full plan is in `docs/ROADMAP.md`. Each built feature has its spec in `specs
   - web sign-in and monitors UI (`005`)
 - **CI** (`006`), part of phase 5
 - **Dashboard stats** (`007`), part of phase 2: uptime and latency for 24 h / 7 d, a latency chart, recent checks, 30-day check retention
+- **Telegram alerts** (`008`), part of phase 3: down and recovered messages, a 2-failure threshold, deep-link connect
 
 **Deferred:**
 - **Redis status cache:** the monitor row already holds the current status. Add the cache when something needs fast reads, such as live dashboard updates.
@@ -159,7 +167,7 @@ The full plan is in `docs/ROADMAP.md`. Each built feature has its spec in `specs
 2. **Security before public deployment:**
    - rate limiting on login and register
    - moving the session from `localStorage` to httpOnly cookies
-3. **Alerts (phase 3):** Telegram, Slack/Discord webhooks and email, firing when a monitor goes down or recovers, plus a weekly digest.
+3. **More alerts (phase 3):** Slack/Discord webhooks and email (reusing `AlertChannel`), plus a weekly digest.
 4. **SaaS extras (phase 4):**
    - public status pages
    - multi-region checks

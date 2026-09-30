@@ -5,6 +5,7 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AlertsService } from '../alerts/alerts.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { checkUrl, type CheckResult } from './http-check';
 
@@ -23,6 +24,7 @@ export class PingService implements OnApplicationBootstrap, OnModuleDestroy {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly alerts: AlertsService,
     config: ConfigService,
   ) {
     this.enabled = config.get('PING_ENABLED') !== 'false';
@@ -84,7 +86,7 @@ export class PingService implements OnApplicationBootstrap, OnModuleDestroy {
    */
   async recordResult(id: string, checkedUrl: string, result: CheckResult) {
     const now = new Date();
-    await this.prisma.$transaction(async (tx) => {
+    const saved = await this.prisma.$transaction(async (tx) => {
       const { count } = await tx.monitor.updateMany({
         where: { id, url: checkedUrl },
         data: { status: result.isUp ? 'UP' : 'DOWN', lastCheckedAt: now },
@@ -94,6 +96,12 @@ export class PingService implements OnApplicationBootstrap, OnModuleDestroy {
           data: { monitorId: id, checkedAt: now, ...result },
         });
       }
+      return count === 1;
     });
+    if (!saved) return;
+    // Alert failures must never fail or delay a check.
+    await this.alerts
+      .onCheckRecorded(id, result.isUp)
+      .catch((e: unknown) => this.logger.error(e));
   }
 }

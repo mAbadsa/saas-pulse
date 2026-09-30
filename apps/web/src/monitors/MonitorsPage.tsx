@@ -1,6 +1,7 @@
 import type { MonitorResponse, MonitorStatsSummary } from '@saas-pulse/shared';
-import { Activity, LogOut, Plus, RefreshCw } from 'lucide-react';
+import { Activity, LogOut, Plus, RefreshCw, Settings } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { useAuth } from '@/auth/auth-context';
 import { Button } from '@/components/ui/button';
 import { api, ApiError } from '@/lib/api';
@@ -81,7 +82,17 @@ export function MonitorsPage() {
           <span className="text-muted-foreground ml-auto hidden truncate text-sm sm:inline">
             {user?.email}
           </span>
-          <Button variant="ghost" size="sm" onClick={() => signOut()} className="ml-auto sm:ml-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link to="/settings" />}
+            className="ml-auto sm:ml-0"
+          >
+            <Settings aria-hidden />
+            Settings
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => signOut()}>
             <LogOut aria-hidden />
             Sign out
           </Button>

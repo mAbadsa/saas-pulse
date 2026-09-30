@@ -99,3 +99,19 @@ export interface MonitorStatsDetail {
   series: StatsPoint[];
   recent: CheckResponse[];
 }
+
+export interface TelegramStatus {
+  available: boolean;
+  connected: boolean;
+  enabled: boolean;
+  connectedAt: string | null;
+}
+
+export interface TelegramLinkResponse {
+  url: string;
+  expiresAt: string;
+}
+
+export interface UpdateTelegramRequest {
+  enabled: boolean;
+}

@@ -4,7 +4,7 @@
 
 A real-time infrastructure monitoring platform. SaaS Pulse watches your servers, APIs and websites, and tracks their uptime, latency and response status.
 
-> **Status:** early development. The API (auth, monitors, automatic checks, uptime/latency stats) and a web app with live status, 24 h stats and per-monitor latency charts are in place; alerts are next — see the [roadmap](docs/ROADMAP.md).
+> **Status:** early development. The API (auth, monitors, automatic checks, uptime/latency stats) and a web app with live status, 24 h stats, per-monitor latency charts and Telegram alerts are in place — see the [roadmap](docs/ROADMAP.md).
 
 ## Tech Stack
 
@@ -66,6 +66,14 @@ Per-app scripts:
 - **API:** `npm run test -w @saas-pulse/api`. Also available: `test:e2e`, `lint`, `format`.
 - **Web:** `npm run lint -w @saas-pulse/web`.
 
+## Alerts (Telegram)
+
+When a monitor fails **2 checks in a row**, SaaS Pulse sends one 🔴 DOWN message. On the next successful check it sends one 🟢 RECOVERED message with the downtime. There are no repeats while a monitor stays down, and single-check blips don't alert.
+
+**To enable (once per server):**
+1. Message [@BotFather](https://t.me/BotFather) in Telegram, send `/newbot`, and copy the token into `apps/api/.env` as `TELEGRAM_BOT_TOKEN=...`.
+2. Restart the API. Users can then open **Settings → Connect Telegram** in the web app and press **Start** in the bot.
+
 ## CI
 
 Every push and pull request runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
@@ -90,6 +98,7 @@ The JWT secret is generated per run; nothing secret is committed.
 | `PING_ALLOW_PRIVATE` | API | `false`; **local dev only**: lets monitors reach `localhost`/private IPs |
 | `PING_TIMEOUT_MS` | API | `10000` |
 | `CHECK_RETENTION_DAYS` | API | `30` (minimum 7); older checks are deleted hourly |
+| `TELEGRAM_BOT_TOKEN` | API | unset (Telegram alerts off). A bot token from @BotFather; **secret**, keep it in `apps/api/.env` only |
 | `VITE_API_URL` | Web | `http://localhost:3000` |
 
 ## API
@@ -108,6 +117,11 @@ The JWT secret is generated per run; nothing secret is committed.
 | GET | `/monitors/stats` | 24 h uptime % and average latency for each of your monitors |
 | GET | `/monitors/:id/stats?range=24h\|7d` | Period uptime/latency, a time series (1 h / 6 h slots) and the 20 most recent checks |
 | DELETE | `/monitors/:id` | Delete a monitor and its check history |
+| GET | `/alerts/telegram` | Telegram alert status: `{ available, connected, enabled, connectedAt }` |
+| POST | `/alerts/telegram/link` | One-time link (10 min) that opens the bot; pressing Start connects the chat |
+| PATCH | `/alerts/telegram` | `{ enabled }`: turn alerts on or off |
+| DELETE | `/alerts/telegram` | Disconnect Telegram |
+| POST | `/alerts/telegram/test` | Send a test message |
 
 Every endpoint except `/`, `/health`, `/auth/register` and `/auth/login` requires `Authorization: Bearer <accessToken>`.
 
