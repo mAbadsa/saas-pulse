@@ -18,6 +18,7 @@ import {
 import { api, ApiError } from '@/lib/api';
 import { formatLatency, formatUptime } from '@/lib/format';
 import { relativeTime } from '@/lib/time';
+import { useMonitorUpdates } from '@/hooks/useMonitorUpdates';
 import { LatencyChart } from './LatencyChart';
 import { StatusBadge } from './StatusBadge';
 
@@ -56,6 +57,26 @@ export function MonitorDetailPage() {
         }),
     [id, range],
   );
+
+  // Real-time monitor updates via Socket.io
+  useMonitorUpdates((update) => {
+    if (update.monitorId !== id) return; // Only listen to this monitor's updates
+
+    if (update.type === 'status' && monitor) {
+      // Update monitor status instantly
+      const statusEvent = update.data as import('@saas-pulse/shared').MonitorStatusChangeEvent;
+      setMonitor({ ...monitor, status: statusEvent.status });
+    } else if (update.type === 'stats' && stats) {
+      // Update stats (note: this is just the summary; full stats via polling)
+      // In a more complete impl, we'd append new checks to the recent list
+      const statsEvent = update.data as import('@saas-pulse/shared').MonitorStatsUpdateEvent;
+      setStats({
+        ...stats,
+        uptimePercent: statsEvent.uptime24h,
+        avgLatencyMs: statsEvent.latency24hAvg,
+      });
+    }
+  });
 
   useEffect(() => {
     void load();

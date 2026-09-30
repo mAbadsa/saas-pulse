@@ -115,3 +115,10 @@ export interface TelegramLinkResponse {
 export interface UpdateTelegramRequest {
   enabled: boolean;
 }
+
+// Socket.io Real-Time Events
+export type {
+  MonitorStatusChangeEvent,
+  MonitorStatsUpdateEvent,
+  SocketEventsMap,
+} from './socket-events';
