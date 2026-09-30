@@ -14,12 +14,12 @@
 
 **Purpose**: Scaffold data model, shared types, and API infrastructure
 
-- [ ] T001 Create Prisma migration for AlertChannel type extension in `apps/api/prisma/migrations/add_multi_channel_alerts/migration.sql`
-- [ ] T002 [P] Create AlertLog table migration in `apps/api/prisma/schema.prisma` with fields: id, monitorId, alertChannelId, status, channelType, deliveryStatus, errorMessage, retryCount, timestamp, completedAt
-- [ ] T003 [P] Extend AlertChannel model in `apps/api/prisma/schema.prisma`: add `type` ENUM (TELEGRAM|SLACK|DISCORD|EMAIL), `webhookUrl` (nullable), `email` (nullable), unique constraint on (userId, type)
-- [ ] T004 Create shared alert types in `packages/shared/src/alerts.ts`: AlertChannelType enum, AlertChannelDto, AlertLogDto, WebhookPayload interfaces
-- [ ] T005 Export alert types from `packages/shared/src/index.ts`
-- [ ] T006 Run `npm run prisma:generate` and `npm run build:shared` to apply schema changes
+- [x] T001 Create Prisma migration for AlertChannel type extension in `apps/api/prisma/migrations/add_multi_channel_alerts/migration.sql`
+- [x] T002 [P] Create AlertLog table migration in `apps/api/prisma/schema.prisma` with fields: id, monitorId, alertChannelId, status, channelType, deliveryStatus, errorMessage, retryCount, timestamp, completedAt
+- [x] T003 [P] Extend AlertChannel model in `apps/api/prisma/schema.prisma`: add `type` ENUM (TELEGRAM|SLACK|DISCORD|EMAIL), `webhookUrl` (nullable), `email` (nullable), unique constraint on (userId, type)
+- [x] T004 Create shared alert types in `packages/shared/src/alerts.ts`: AlertChannelType enum, AlertChannelDto, AlertLogDto, WebhookPayload interfaces
+- [x] T005 Export alert types from `packages/shared/src/index.ts`
+- [x] T006 Run `npm run prisma:generate` and `npm run build:shared` to apply schema changes
 
 ---
 
@@ -30,7 +30,7 @@
 **⚠️ CRITICAL**: No user story work can begin until Phase 2 is complete. All tasks below must succeed.
 
 - [ ] T007 Create AlertsService enhancements in `apps/api/src/alerts/alerts.service.ts`: add methods for `sendAlertViaChannel(channel, monitor, status)` and `logAlertSend(monitorId, channelId, status, deliveryStatus, error?)`
-- [ ] T008 Create SlackDeliveryService in `apps/api/src/alerts/slack-delivery.service.ts`: implement `sendAlert(webhookUrl, monitor, status)` and `formatSlackMessage(monitor, status)` methods
+- [x] T008 Create SlackDeliveryService in `apps/api/src/alerts/slack-delivery.service.ts`: implement `sendAlert(webhookUrl, monitor, status)` and `formatSlackMessage(monitor, status)` methods
 - [ ] T009 Create DiscordDeliveryService in `apps/api/src/alerts/discord-delivery.service.ts`: implement `sendAlert(webhookUrl, monitor, status)` and `formatDiscordEmbed(monitor, status)` methods
 - [ ] T010 Create EmailDeliveryService in `apps/api/src/alerts/email-delivery.service.ts`: implement `sendAlert(email, monitor, status)` using nodemailer; handle SMTP config from env variables (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)
 - [ ] T011 Create WeeklyDigestService in `apps/api/src/alerts/weekly-digest.service.ts`: implement `generateDigest(userId)` method that queries 7-day monitor stats and formats email body
