@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AlertsService } from '../alerts/alerts.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SocketService } from '../socket/socket.service';
 import { checkUrl, type CheckResult } from './http-check';
 
 const CYCLE_MS = 10_000;
@@ -25,6 +26,7 @@ export class PingService implements OnApplicationBootstrap, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly alerts: AlertsService,
+    private readonly socket: SocketService,
     config: ConfigService,
   ) {
     this.enabled = config.get('PING_ENABLED') !== 'false';
@@ -86,10 +88,20 @@ export class PingService implements OnApplicationBootstrap, OnModuleDestroy {
    */
   async recordResult(id: string, checkedUrl: string, result: CheckResult) {
     const now = new Date();
+    const newStatus = result.isUp ? 'UP' : 'DOWN';
+
+    // Fetch current monitor state to detect status changes
+    const currentMonitor = await this.prisma.monitor.findUnique({
+      where: { id },
+      select: { userId: true, status: true },
+    });
+
+    if (!currentMonitor) return; // Monitor was deleted
+
     const saved = await this.prisma.$transaction(async (tx) => {
       const { count } = await tx.monitor.updateMany({
         where: { id, url: checkedUrl },
-        data: { status: result.isUp ? 'UP' : 'DOWN', lastCheckedAt: now },
+        data: { status: newStatus, lastCheckedAt: now },
       });
       if (count === 1) {
         await tx.check.create({
@@ -98,7 +110,14 @@ export class PingService implements OnApplicationBootstrap, OnModuleDestroy {
       }
       return count === 1;
     });
+
     if (!saved) return;
+
+    // Emit real-time status change event if status changed
+    if (currentMonitor.status !== newStatus) {
+      this.socket.emitStatusChange(currentMonitor.userId, id, newStatus);
+    }
+
     // Alert failures must never fail or delay a check.
     await this.alerts
       .onCheckRecorded(id, result.isUp)
