@@ -14,7 +14,7 @@
 
 **Purpose**: Scaffold Socket.io module structure and shared type definitions
 
-- [ ] T001 Create Socket.io module structure in `apps/api/src/socket/` directory
+- [X] T001 Create Socket.io module structure in `apps/api/src/socket/` directory
 - [ ] T002 [P] Create shared Socket.io event types in `packages/shared/src/socket-events.ts` with `MonitorStatusChangeEvent` and `MonitorStatsUpdateEvent` interfaces (from contracts/socket-events.ts)
 - [ ] T003 [P] Create React Socket.io hooks directory structure in `apps/web/src/hooks/`
 - [ ] T004 Initialize Socket.io client utility in `apps/web/src/lib/socket-client.ts` (connection initialization, token auth, fallback handling)

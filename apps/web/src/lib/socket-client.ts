@@ -12,6 +12,18 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 let socketInstance: Socket<SocketEventsMap> | null = null;
 
+// Lets React components re-render when the instance is created or dropped
+const listeners = new Set<() => void>();
+
+export function subscribeSocket(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function notify(): void {
+  listeners.forEach((listener) => listener());
+}
+
 export function initializeSocket(token: string): Socket<SocketEventsMap> {
   if (socketInstance?.connected) {
     return socketInstance;
@@ -35,6 +47,7 @@ export function initializeSocket(token: string): Socket<SocketEventsMap> {
     console.debug('[Socket.io] Disconnected:', reason);
   });
 
+  notify();
   return socketInstance;
 }
 
@@ -46,6 +59,7 @@ export function disconnectSocket(): void {
   if (socketInstance) {
     socketInstance.disconnect();
     socketInstance = null;
+    notify();
   }
 }
 

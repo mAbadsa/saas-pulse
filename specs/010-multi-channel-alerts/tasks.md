@@ -29,7 +29,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until Phase 2 is complete. All tasks below must succeed.
 
-- [ ] T007 Create AlertsService enhancements in `apps/api/src/alerts/alerts.service.ts`: add methods for `sendAlertViaChannel(channel, monitor, status)` and `logAlertSend(monitorId, channelId, status, deliveryStatus, error?)`
+- [x] T007 Create AlertsService enhancements in `apps/api/src/alerts/alerts.service.ts`: add methods for `sendAlertViaChannel(channel, monitor, status)` and `logAlertSend(monitorId, channelId, status, deliveryStatus, error?)`
 - [x] T008 Create SlackDeliveryService in `apps/api/src/alerts/slack-delivery.service.ts`: implement `sendAlert(webhookUrl, monitor, status)` and `formatSlackMessage(monitor, status)` methods
 - [ ] T009 Create DiscordDeliveryService in `apps/api/src/alerts/discord-delivery.service.ts`: implement `sendAlert(webhookUrl, monitor, status)` and `formatDiscordEmbed(monitor, status)` methods
 - [ ] T010 Create EmailDeliveryService in `apps/api/src/alerts/email-delivery.service.ts`: implement `sendAlert(email, monitor, status)` using nodemailer; handle SMTP config from env variables (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)

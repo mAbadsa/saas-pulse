@@ -6,6 +6,7 @@ import {
   Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import type { AlertChannel } from '@prisma/client';
 import type { TelegramLinkResponse, TelegramStatus } from '@saas-pulse/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { LinkCodes } from './link-codes';
@@ -216,68 +217,96 @@ export class AlertsService {
       if (!channel.isActive) continue;
 
       void (async () => {
-        let result: { success: boolean; error?: string } = {
-          success: false,
-          error: 'Unknown delivery service',
-        };
-
-        try {
-          if (channel.type === 'SLACK' && this.slack && channel.webhookUrl) {
-            result = await this.slack.sendAlert(
-              channel.webhookUrl,
-              monitorName,
-              monitorUrl,
-              status,
-              error,
-            );
-          } else if (
-            channel.type === 'DISCORD' &&
-            this.discord &&
-            channel.webhookUrl
-          ) {
-            result = await this.discord.sendAlert(
-              channel.webhookUrl,
-              monitorName,
-              monitorUrl,
-              status,
-              error,
-            );
-          } else if (channel.type === 'EMAIL' && this.email && channel.email) {
-            result = await this.email.sendAlert(
-              channel.email,
-              monitorName,
-              monitorUrl,
-              status,
-              error,
-            );
-          }
-        } catch (err) {
-          result = {
-            success: false,
-            error: err instanceof Error ? err.message : String(err),
-          };
-        }
-
-        // Log the delivery attempt
-        await this.prisma.alertLog.create({
-          data: {
-            monitorId,
-            alertChannelId: channel.id,
-            status,
-            channelType: channel.type,
-            deliveryStatus: result.success ? 'SUCCESS' : 'FAILED',
-            errorMessage: result.error,
-            retryCount: 0,
-            timestamp: new Date(),
-            completedAt: new Date(),
-          },
-        });
+        const result = await this.sendAlertViaChannel(
+          channel,
+          monitorName,
+          monitorUrl,
+          status,
+          error,
+        );
+        await this.logAlertSend(
+          monitorId,
+          channel.id,
+          channel.type,
+          status,
+          result.success ? 'SUCCESS' : 'FAILED',
+          result.error,
+        );
       })().catch((e: unknown) =>
         this.logger.warn(
           `Multi-channel alert delivery failed: ${e instanceof Error ? e.message : String(e)}`,
         ),
       );
     }
+  }
+
+  /** Route one alert to its channel's delivery service. Never throws. */
+  async sendAlertViaChannel(
+    channel: AlertChannel,
+    monitorName: string,
+    monitorUrl: string,
+    status: string,
+    error?: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (channel.type === 'SLACK' && this.slack && channel.webhookUrl) {
+        return await this.slack.sendAlert(
+          channel.webhookUrl,
+          monitorName,
+          monitorUrl,
+          status,
+          error,
+        );
+      }
+      if (channel.type === 'DISCORD' && this.discord && channel.webhookUrl) {
+        return await this.discord.sendAlert(
+          channel.webhookUrl,
+          monitorName,
+          monitorUrl,
+          status,
+          error,
+        );
+      }
+      if (channel.type === 'EMAIL' && this.email && channel.email) {
+        return await this.email.sendAlert(
+          channel.email,
+          monitorName,
+          monitorUrl,
+          status,
+          error,
+        );
+      }
+      return { success: false, error: 'Unknown delivery service' };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  /** Append one delivery attempt to AlertLog. */
+  async logAlertSend(
+    monitorId: string,
+    channelId: string,
+    channelType: AlertChannel['type'],
+    status: string,
+    deliveryStatus: 'SUCCESS' | 'FAILED',
+    error?: string,
+  ): Promise<void> {
+    await this.prisma.alertLog.create({
+      data: {
+        monitorId,
+        alertChannelId: channelId,
+        status,
+        channelType,
+        deliveryStatus,
+        errorMessage: error,
+        retryCount: 0,
+        timestamp: new Date(),
+        completedAt: new Date(),
+      },
+    });
   }
 
   /**
@@ -296,57 +325,21 @@ export class AlertsService {
       return { success: false, message: 'Channel not found' };
     }
 
-    const status = 'DOWN';
-    const error = 'Test error message';
-
-    if (channel.type === 'SLACK' && this.slack && channel.webhookUrl) {
-      const result = await this.slack.sendAlert(
-        channel.webhookUrl,
-        monitorName,
-        monitorUrl,
-        status,
-        error,
-      );
-      return {
-        success: result.success,
-        message: result.success
-          ? 'Test message sent to Slack'
-          : `Slack delivery failed: ${result.error}`,
-      };
-    } else if (
-      channel.type === 'DISCORD' &&
-      this.discord &&
-      channel.webhookUrl
-    ) {
-      const result = await this.discord.sendAlert(
-        channel.webhookUrl,
-        monitorName,
-        monitorUrl,
-        status,
-        error,
-      );
-      return {
-        success: result.success,
-        message: result.success
-          ? 'Test message sent to Discord'
-          : `Discord delivery failed: ${result.error}`,
-      };
-    } else if (channel.type === 'EMAIL' && this.email && channel.email) {
-      const result = await this.email.sendAlert(
-        channel.email,
-        monitorName,
-        monitorUrl,
-        status,
-        error,
-      );
-      return {
-        success: result.success,
-        message: result.success
-          ? 'Test message sent to email'
-          : `Email delivery failed: ${result.error}`,
-      };
+    const result = await this.sendAlertViaChannel(
+      channel,
+      monitorName,
+      monitorUrl,
+      'DOWN',
+      'Test error message',
+    );
+    if (result.error === 'Unknown delivery service') {
+      return { success: false, message: 'Channel type not supported' };
     }
-
-    return { success: false, message: 'Channel type not supported' };
+    return {
+      success: result.success,
+      message: result.success
+        ? `Test message sent to ${channel.type.toLowerCase()}`
+        : `${channel.type} delivery failed: ${result.error}`,
+    };
   }
 }

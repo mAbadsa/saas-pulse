@@ -36,12 +36,7 @@ export class EmailDeliveryService implements OnModuleInit {
         ? `🔴 Monitor Down: ${monitorName}`
         : `🟢 Monitor Recovered: ${monitorName}`;
 
-      const html = this.formatEmailHtml(
-        monitorName,
-        monitorUrl,
-        status,
-        error,
-      );
+      const html = this.formatEmailHtml(monitorName, monitorUrl, status, error);
 
       await this.transporter.sendMail({
         from: process.env.SMTP_FROM || 'noreply@saas-pulse.local',
@@ -56,9 +51,7 @@ export class EmailDeliveryService implements OnModuleInit {
       return { success: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.logger.error(
-        `Email delivery failed to ${recipient}: ${message}`,
-      );
+      this.logger.error(`Email delivery failed to ${recipient}: ${message}`);
       return { success: false, error: message };
     }
   }

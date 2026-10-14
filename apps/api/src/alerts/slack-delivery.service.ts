@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MonitorStatus } from '@saas-pulse/shared';
 
 export interface SlackMessage {
   text: string;
@@ -67,7 +66,6 @@ export class SlackDeliveryService {
   ): SlackMessage {
     const isDown = status === 'DOWN';
     const icon = isDown ? '🔴' : '🟢';
-    const color = isDown ? '#dc2626' : '#16a34a';
     const statusText = isDown ? 'Down' : 'Recovered';
 
     return {

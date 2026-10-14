@@ -19,39 +19,27 @@ export interface MonitorUpdate {
   data: MonitorStatusChangeEvent | MonitorStatsUpdateEvent;
 }
 
-interface PollingState {
-  enabled: boolean;
-  intervalId?: ReturnType<typeof setInterval>;
-}
-
 export function useMonitorUpdates(onUpdate: (update: MonitorUpdate) => void) {
   const socket = useSocket();
   const lastSeenTimestampRef = useRef<Record<string, number>>({});
   const [pollingActive, setPollingActive] = useState(false);
-  const pollingRef = useRef<PollingState>({ enabled: false });
+  const pollingRef = useRef(false);
 
+  // Polling itself lives in MonitorsPage.tsx; this only tracks whether it's needed
   const enablePolling = useCallback(() => {
-    if (pollingRef.current.enabled) return;
+    if (pollingRef.current) return;
 
     console.debug('[useMonitorUpdates] Enabling polling (Socket.io unavailable)');
     setPollingActive(true);
-    pollingRef.current.enabled = true;
-
-    // Polling is handled externally via MonitorsPage.tsx existing fetch logic
-    // This callback just marks that polling is active
+    pollingRef.current = true;
   }, []);
 
   const disablePolling = useCallback(() => {
-    if (!pollingRef.current.enabled) return;
+    if (!pollingRef.current) return;
 
     console.debug('[useMonitorUpdates] Disabling polling (Socket.io connected)');
     setPollingActive(false);
-    pollingRef.current.enabled = false;
-
-    if (pollingRef.current.intervalId) {
-      clearInterval(pollingRef.current.intervalId);
-      pollingRef.current.intervalId = undefined;
-    }
+    pollingRef.current = false;
   }, []);
 
   const handleStatusChange = useCallback(
@@ -122,8 +110,8 @@ export function useMonitorUpdates(onUpdate: (update: MonitorUpdate) => void) {
     }
 
     // Listen to socket events
-    (socket as any).on('monitor:status-change', handleStatusChange);
-    (socket as any).on('monitor:stats-update', handleStatsUpdate);
+    socket.on('monitor:status-change', handleStatusChange);
+    socket.on('monitor:stats-update', handleStatsUpdate);
 
     // Handle connection state
     const handleConnect = () => {
@@ -136,37 +124,21 @@ export function useMonitorUpdates(onUpdate: (update: MonitorUpdate) => void) {
       enablePolling();
     };
 
-    const handleReconnect = () => {
-      console.debug('[useMonitorUpdates] Socket reconnected - syncing full state');
-      // Full state sync is handled by MonitorsPage.tsx via fetchMonitors()
-      // This is just to log the reconnection event
-    };
-
-    (socket as any).on('connect', handleConnect);
-    (socket as any).on('disconnect', handleDisconnect);
-    (socket as any).on('reconnect', handleReconnect);
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
 
     // Cleanup listeners
     return () => {
-      (socket as any).off('monitor:status-change', handleStatusChange);
-      (socket as any).off('monitor:stats-update', handleStatsUpdate);
-      (socket as any).off('connect', handleConnect);
-      (socket as any).off('disconnect', handleDisconnect);
-      (socket as any).off('reconnect', handleReconnect);
+      socket.off('monitor:status-change', handleStatusChange);
+      socket.off('monitor:stats-update', handleStatsUpdate);
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
     };
   }, [socket, handleStatusChange, handleStatsUpdate, enablePolling, disablePolling]);
 
-  // Cleanup polling on unmount
-  useEffect(() => {
-    return () => {
-      if (pollingRef.current.intervalId) {
-        clearInterval(pollingRef.current.intervalId);
-      }
-    };
-  }, []);
-
   return {
     pollingActive,
-    lastSeenTimestamp: lastSeenTimestampRef.current,
+    // return the ref object instead of reading .current during render
+    lastSeenTimestamp: lastSeenTimestampRef,
   };
 }

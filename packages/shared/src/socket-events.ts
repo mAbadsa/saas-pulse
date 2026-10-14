@@ -36,7 +36,8 @@ export interface MonitorStatsUpdateEvent {
   timestamp: number;
 }
 
+/** Server-to-client events as listener signatures, the shape socket.io-client expects */
 export interface SocketEventsMap {
-  'monitor:status-change': MonitorStatusChangeEvent;
-  'monitor:stats-update': MonitorStatsUpdateEvent;
+  'monitor:status-change': (event: MonitorStatusChangeEvent) => void;
+  'monitor:stats-update': (event: MonitorStatsUpdateEvent) => void;
 }

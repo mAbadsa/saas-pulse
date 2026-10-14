@@ -2,12 +2,7 @@
  * Socket.io Service
  *
  * Emits real-time events to connected clients scoped by user.
- *
- * @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
- * are disabled due to NestJS WebSocketGateway decorator limitations.
  */
-/* eslint-disable @typescript-eslint/no-unsafe-call,
-@typescript-eslint/no-unsafe-member-access */
 
 import { Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';

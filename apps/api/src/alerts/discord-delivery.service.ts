@@ -70,7 +70,9 @@ export class DiscordDeliveryService {
               name: 'Time',
               value: new Date().toISOString(),
             },
-            ...(error ? [{ name: 'Error', value: `\`\`\`${error}\`\`\`` }] : []),
+            ...(error
+              ? [{ name: 'Error', value: `\`\`\`${error}\`\`\`` }]
+              : []),
           ],
           footer: { text: 'SaaS Pulse Monitoring' },
           timestamp: new Date().toISOString(),

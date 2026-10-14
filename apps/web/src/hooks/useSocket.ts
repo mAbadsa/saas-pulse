@@ -8,30 +8,30 @@
  * - Handles reconnection on network loss
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useAuth } from '../auth/auth-context';
 import { loadSession } from '../lib/session';
 import {
   initializeSocket,
   disconnectSocket,
+  getSocket,
+  subscribeSocket,
 } from '../lib/socket-client';
-import type { Socket } from 'socket.io-client';
-import type { SocketEventsMap } from '@saas-pulse/shared';
 
 export function useSocket() {
   const { user } = useAuth();
-  const socketRef = useRef<Socket<SocketEventsMap> | null>(null);
-  const visibilityListenerRef = useRef<(() => void) | null>(null);
+  const socket = useSyncExternalStore(subscribeSocket, getSocket);
 
   const handleVisibilityChange = useCallback(() => {
-    if (!socketRef.current) return;
+    const current = getSocket();
+    if (!current) return;
 
     if (document.hidden) {
       console.debug('[useSocket] Tab hidden - disconnecting');
-      socketRef.current.disconnect();
+      current.disconnect();
     } else {
       console.debug('[useSocket] Tab visible - reconnecting');
-      socketRef.current.connect();
+      current.connect();
     }
   }, []);
 
@@ -39,7 +39,6 @@ export function useSocket() {
     // Only initialize if user is authenticated
     if (!user) {
       disconnectSocket();
-      socketRef.current = null;
       return;
     }
 
@@ -47,15 +46,12 @@ export function useSocket() {
     const session = loadSession();
     if (!session?.accessToken) {
       disconnectSocket();
-      socketRef.current = null;
       return;
     }
 
     // Initialize socket connection
-    socketRef.current = initializeSocket(session.accessToken);
+    initializeSocket(session.accessToken);
 
-    // Add visibility listener
-    visibilityListenerRef.current = handleVisibilityChange;
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Cleanup on unmount
@@ -65,11 +61,10 @@ export function useSocket() {
         handleVisibilityChange,
       );
       disconnectSocket();
-      socketRef.current = null;
     };
   }, [user, handleVisibilityChange]);
 
-  return socketRef.current;
+  return socket;
 }
 
 /**
