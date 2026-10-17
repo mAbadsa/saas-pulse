@@ -15,6 +15,9 @@ enum MonitorStatus {
 
 enum AlertChannelType {
   TELEGRAM
+  SLACK
+  DISCORD
+  EMAIL
 }
 
 model User {
@@ -40,6 +43,7 @@ model Monitor {
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   checks          Check[]
+  alertLogs       AlertLog[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -60,14 +64,37 @@ model Check {
 }
 
 model AlertChannel {
-  id        String           @id @default(cuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      AlertChannelType
-  target    String // Telegram chat id
-  enabled   Boolean          @default(true)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       AlertChannelType
+  target     String? // Telegram chat id (legacy, for backward compatibility)
+  webhookUrl String? // Slack/Discord webhook URL
+  email      String? // Email recipient
+  isActive   Boolean          @default(true)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  logs       AlertLog[]
 
   @@unique([userId, type])
+  @@index([userId])
+}
+
+model AlertLog {
+  id              String   @id @default(cuid())
+  monitorId       String
+  monitor         Monitor  @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  alertChannelId  String
+  alertChannel    AlertChannel @relation(fields: [alertChannelId], references: [id], onDelete: SetNull)
+  status          String   // UP, DOWN, PENDING
+  channelType     AlertChannelType
+  deliveryStatus  String   // SUCCESS, FAILED, RETRYING
+  errorMessage    String?
+  retryCount      Int      @default(0)
+  timestamp       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([monitorId, timestamp])
+  @@index([alertChannelId, timestamp])
+  @@index([deliveryStatus])
 }

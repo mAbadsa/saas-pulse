@@ -3,13 +3,18 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import type { AlertChannel } from '@prisma/client';
 import type { TelegramLinkResponse, TelegramStatus } from '@saas-pulse/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { LinkCodes } from './link-codes';
 import { downMessage, recoveredMessage, TEST_TEXT } from './messages';
 import { TelegramClient, TelegramError } from './telegram.client';
+import { SlackDeliveryService } from './slack-delivery.service';
+import { DiscordDeliveryService } from './discord-delivery.service';
+import { EmailDeliveryService } from './email-delivery.service';
 
 /** Consecutive failed checks before a down alert (filters out one-off blips). */
 const ALERT_AFTER_FAILURES = 2;
@@ -24,6 +29,9 @@ export class AlertsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly telegram: TelegramClient,
+    @Optional() private readonly slack: SlackDeliveryService,
+    @Optional() private readonly discord: DiscordDeliveryService,
+    @Optional() private readonly email: EmailDeliveryService,
   ) {}
 
   // ---- Channel management (per user) ----
@@ -33,7 +41,7 @@ export class AlertsService {
     return {
       available: this.telegram.available,
       connected: channel !== null,
-      enabled: channel?.enabled ?? false,
+      enabled: channel?.isActive ?? false,
       connectedAt: channel?.createdAt.toISOString() ?? null,
     };
   }
@@ -60,8 +68,8 @@ export class AlertsService {
     await this.prisma.alertChannel.upsert({
       where: { userId_type: { userId, type: TELEGRAM } },
       create: { userId, type: TELEGRAM, target: chatId },
-      // Re-linking starts a fresh connection (new chat, enabled, new connectedAt).
-      update: { target: chatId, enabled: true, createdAt: new Date() },
+      // Re-linking starts a fresh connection (new chat, active, new connectedAt).
+      update: { target: chatId, isActive: true, createdAt: new Date() },
     });
     return true;
   }
@@ -69,7 +77,7 @@ export class AlertsService {
   async setEnabled(userId: string, enabled: boolean): Promise<TelegramStatus> {
     const { count } = await this.prisma.alertChannel.updateMany({
       where: { userId, type: TELEGRAM },
-      data: { enabled },
+      data: { isActive: enabled },
     });
     if (count === 0) throw new NotFoundException('Telegram is not connected');
     return this.status(userId);
@@ -85,7 +93,8 @@ export class AlertsService {
   async sendTest(userId: string): Promise<void> {
     this.assertAvailable();
     const channel = await this.findChannel(userId);
-    if (!channel) throw new NotFoundException('Telegram is not connected');
+    if (!channel || !channel.target)
+      throw new NotFoundException('Telegram is not connected');
     try {
       await this.telegram.sendMessage(channel.target, TEST_TEXT);
     } catch (e) {
@@ -162,7 +171,7 @@ export class AlertsService {
     if (!this.telegram.available) return;
     void (async () => {
       const channel = await this.findChannel(userId);
-      if (!channel?.enabled) return;
+      if (!channel?.isActive || !channel.target) return;
       await this.telegram.sendMessage(channel.target, text);
     })().catch((e: unknown) =>
       this.logger.warn(
@@ -183,5 +192,154 @@ export class AlertsService {
         'Telegram alerts are not configured on this server',
       );
     }
+  }
+
+  // ---- Multi-channel alert delivery ----
+
+  /**
+   * Send alert to all configured channels for a user (Slack, Discord, Email)
+   * Logs each delivery attempt to AlertLog table
+   * Fire-and-forget: failures don't block monitor checks
+   */
+  async sendAlertViaChannels(
+    userId: string,
+    monitorId: string,
+    monitorName: string,
+    monitorUrl: string,
+    status: string,
+    error?: string,
+  ): Promise<void> {
+    const channels = await this.prisma.alertChannel.findMany({
+      where: { userId },
+    });
+
+    for (const channel of channels) {
+      if (!channel.isActive) continue;
+
+      void (async () => {
+        const result = await this.sendAlertViaChannel(
+          channel,
+          monitorName,
+          monitorUrl,
+          status,
+          error,
+        );
+        await this.logAlertSend(
+          monitorId,
+          channel.id,
+          channel.type,
+          status,
+          result.success ? 'SUCCESS' : 'FAILED',
+          result.error,
+        );
+      })().catch((e: unknown) =>
+        this.logger.warn(
+          `Multi-channel alert delivery failed: ${e instanceof Error ? e.message : String(e)}`,
+        ),
+      );
+    }
+  }
+
+  /** Route one alert to its channel's delivery service. Never throws. */
+  async sendAlertViaChannel(
+    channel: AlertChannel,
+    monitorName: string,
+    monitorUrl: string,
+    status: string,
+    error?: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (channel.type === 'SLACK' && this.slack && channel.webhookUrl) {
+        return await this.slack.sendAlert(
+          channel.webhookUrl,
+          monitorName,
+          monitorUrl,
+          status,
+          error,
+        );
+      }
+      if (channel.type === 'DISCORD' && this.discord && channel.webhookUrl) {
+        return await this.discord.sendAlert(
+          channel.webhookUrl,
+          monitorName,
+          monitorUrl,
+          status,
+          error,
+        );
+      }
+      if (channel.type === 'EMAIL' && this.email && channel.email) {
+        return await this.email.sendAlert(
+          channel.email,
+          monitorName,
+          monitorUrl,
+          status,
+          error,
+        );
+      }
+      return { success: false, error: 'Unknown delivery service' };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  /** Append one delivery attempt to AlertLog. */
+  async logAlertSend(
+    monitorId: string,
+    channelId: string,
+    channelType: AlertChannel['type'],
+    status: string,
+    deliveryStatus: 'SUCCESS' | 'FAILED',
+    error?: string,
+  ): Promise<void> {
+    await this.prisma.alertLog.create({
+      data: {
+        monitorId,
+        alertChannelId: channelId,
+        status,
+        channelType,
+        deliveryStatus,
+        errorMessage: error,
+        retryCount: 0,
+        timestamp: new Date(),
+        completedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Test a specific alert channel
+   */
+  async testChannel(
+    channelId: string,
+    monitorName: string,
+    monitorUrl: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const channel = await this.prisma.alertChannel.findUnique({
+      where: { id: channelId },
+    });
+
+    if (!channel) {
+      return { success: false, message: 'Channel not found' };
+    }
+
+    const result = await this.sendAlertViaChannel(
+      channel,
+      monitorName,
+      monitorUrl,
+      'DOWN',
+      'Test error message',
+    );
+    if (result.error === 'Unknown delivery service') {
+      return { success: false, message: 'Channel type not supported' };
+    }
+    return {
+      success: result.success,
+      message: result.success
+        ? `Test message sent to ${channel.type.toLowerCase()}`
+        : `${channel.type} delivery failed: ${result.error}`,
+    };
   }
 }
