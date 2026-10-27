@@ -115,3 +115,24 @@ export interface TelegramLinkResponse {
 export interface UpdateTelegramRequest {
   enabled: boolean;
 }
+
+// Socket.io Real-Time Events
+export type {
+  MonitorStatusChangeEvent,
+  MonitorStatsUpdateEvent,
+  SocketEventsMap,
+} from './socket-events';
+
+// Multi-Channel Alerts
+export {
+  AlertChannelType,
+  type AlertChannelDto,
+  type CreateAlertChannelRequest,
+  type TestAlertChannelRequest,
+  type AlertLogDto,
+  type SlackWebhookPayload,
+  type DiscordWebhookPayload,
+  type EmailPayload,
+  type MonitorAlertEvent,
+  type AlertDeliveryResult,
+} from './alerts';

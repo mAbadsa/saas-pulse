@@ -10,6 +10,9 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(@nestjs/websockets)/)"
+  ],
   "setupFiles": [
     "<rootDir>/setup-env.ts"
   ],

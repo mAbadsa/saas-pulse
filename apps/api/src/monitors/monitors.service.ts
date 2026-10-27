@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SocketService } from '../socket/socket.service';
 import { CreateMonitorDto, UpdateMonitorDto } from './monitors.dto';
 
 // Response fields: never expose userId.
@@ -25,7 +26,10 @@ const notFound = () => new NotFoundException('Monitor not found');
 /** Every query is scoped by userId: another user's monitor is indistinguishable from a missing one. */
 @Injectable()
 export class MonitorsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly socket: SocketService,
+  ) {}
 
   create(userId: string, dto: CreateMonitorDto) {
     return this.prisma.monitor.create({
@@ -57,7 +61,7 @@ export class MonitorsService {
     const urlChanged = url !== undefined && url !== current.url;
 
     try {
-      return await this.prisma.monitor.update({
+      const updated = await this.prisma.monitor.update({
         where: { id },
         data: {
           name,
@@ -72,6 +76,13 @@ export class MonitorsService {
         },
         select: SELECT,
       });
+
+      // Emit status change event if URL changed (status reset to PENDING)
+      if (urlChanged) {
+        this.socket.emitStatusChange(userId, id, 'PENDING');
+      }
+
+      return updated;
     } catch (e) {
       // Deleted between findOwned and update.
       if (

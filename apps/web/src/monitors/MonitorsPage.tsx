@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { useAuth } from '@/auth/auth-context';
 import { Button } from '@/components/ui/button';
 import { api, ApiError } from '@/lib/api';
+import { useMonitorUpdates } from '@/hooks/useMonitorUpdates';
 import { DeleteMonitorDialog } from './DeleteMonitorDialog';
 import { MonitorFormDialog } from './MonitorFormDialog';
 import { MonitorRow } from './MonitorRow';
@@ -42,7 +43,35 @@ export function MonitorsPage() {
     [],
   );
 
+  // Real-time monitor updates via Socket.io
+  useMonitorUpdates((update) => {
+    if (update.type === 'status' && monitors) {
+      // Update monitor status in-place
+      const statusEvent = update.data as import('@saas-pulse/shared').MonitorStatusChangeEvent;
+      setMonitors(
+        monitors.map((m) =>
+          m.id === update.monitorId
+            ? { ...m, status: statusEvent.status }
+            : m,
+        ),
+      );
+    } else if (update.type === 'stats' && stats) {
+      // Update stats in-place
+      const statsEvent = update.data as import('@saas-pulse/shared').MonitorStatsUpdateEvent;
+      const existing = stats.get(update.monitorId);
+      setStats(
+        new Map(stats).set(update.monitorId, {
+          monitorId: update.monitorId,
+          checks: existing?.checks ?? 0,
+          uptimePercent: statsEvent.uptime24h,
+          avgLatencyMs: statsEvent.latency24hAvg,
+        }),
+      );
+    }
+  });
+
   // Initial load + refresh every 15 s while the tab is visible (status changes from the ping service).
+  // This serves as a fallback when Socket.io is unavailable.
   useEffect(() => {
     void load();
     const timer = setInterval(() => {
@@ -104,7 +133,7 @@ export function MonitorsPage() {
           <div>
             <h1 className="text-2xl font-semibold">Monitors</h1>
             <p className="text-muted-foreground text-sm">
-              Updates automatically every {REFRESH_MS / 1000} seconds.
+              Real-time updates when available, or every {REFRESH_MS / 1000} seconds as fallback.
             </p>
           </div>
           {monitors && monitors.length > 0 && addButton}

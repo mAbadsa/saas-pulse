@@ -9,6 +9,7 @@ import { MonitorsModule } from './monitors/monitors.module';
 import { PingModule } from './ping/ping.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { SocketModule } from './socket/socket.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RedisModule } from './redis/redis.module';
     }),
     PrismaModule,
     RedisModule,
+    SocketModule,
     AuthModule,
     MonitorsModule,
     PingModule,
